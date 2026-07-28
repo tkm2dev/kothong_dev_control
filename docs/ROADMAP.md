@@ -39,6 +39,12 @@ Exit gate:
 
 No application code is allowed in this phase
 
+### Foundation Merge ปลดล็อกอะไร
+
+Foundation Merge ปลดล็อกเฉพาะการตัดสินใจที่เหลือของ Phase 1 — technology stack, authentication provider และ secret management approach — **ไม่ได้ปลดล็อกการเขียน application code**
+
+Slice 1 implementation เริ่มได้เมื่อครบ prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 รายการที่ยัง `OPEN` ในหัวข้อ P0 Foundation / Governance ด้านล่างคือสิ่งที่ต้องปิดก่อน
+
 ## Phase 2 — Control Plane MVP
 
 ### Slice 1 Project Registry and Audit Foundation

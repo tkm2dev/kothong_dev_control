@@ -33,6 +33,60 @@
 - Merge or Deploy endpoint/UI
 - autonomous action
 
+## 3.1 Policy Definitions
+
+หัวข้อนี้นิยาม policy ที่ Acceptance Criteria อ้างถึง เพื่อให้ทุกข้อตัดสิน pass/fail ได้โดยไม่ต้องตีความ
+
+### Recorded Actions
+
+action ที่ต้องบันทึกใน Slice 1 มีเพียงชุดนี้ ชื่อ action code ต้องคงที่:
+
+| Action code | เมื่อใด |
+|---|---|
+| `PROJECT_CREATE` | พยายามสร้าง project |
+| `PROJECT_UPDATE` | พยายามแก้ project settings |
+| `PROJECT_REFRESH` | พยายาม re-fetch metadata จาก GitHub |
+| `PROJECT_READ_DENIED` | พยายามอ่าน project ที่ไม่มีสิทธิ์ |
+| `INSTALLATION_LIST` | เรียกรายการ GitHub installation |
+| `REPOSITORY_PREVIEW` | เรียกดู metadata ของ repository ก่อนลงทะเบียน |
+
+### Outcome Values
+
+`SUCCESS`, `DENIED`, `VALIDATION_FAILED`, `CONFLICT`, `UPSTREAM_ERROR`, `IDEMPOTENT_REPLAY`
+
+### Activity Event Policy
+
+- ทุก action ในตาราง Recorded Actions ต้องสร้าง Activity Event **หนึ่งรายการต่อหนึ่ง request** ไม่ว่า outcome จะเป็นอะไร
+- request ที่ถูกปฏิเสธเพราะไม่ผ่าน authentication ไม่ต้องสร้าง Activity Event ระดับ project เพราะยังไม่มี actor ที่ระบุตัวตนได้ แต่ต้องนับใน rate-limit counter ตาม AC-39
+- request ที่ payload ผิด schema จนระบุ action ไม่ได้ ไม่ต้องสร้าง Activity Event
+
+### Audit Record Policy
+
+ต้องสร้าง Audit Record เมื่อ:
+
+1. outcome เป็น `SUCCESS` และ action ทำให้ persisted state เปลี่ยน
+2. outcome เป็น `DENIED` ทุกกรณี โดยไม่คำนึงถึง action — การถูกปฏิเสธคือ security-significant เสมอ
+3. outcome เป็น `CONFLICT` ที่เกิดจาก tenant boundary หรือ optimistic concurrency
+
+ไม่ต้องสร้าง Audit Record เมื่อ outcome เป็น `VALIDATION_FAILED`, `UPSTREAM_ERROR` หรือ `IDEMPOTENT_REPLAY`
+
+### Idempotency Replay Policy
+
+เมื่อ retry ด้วย idempotency key เดิมและ payload เดิม:
+
+- จำนวน Project ที่ถูกสร้าง = 1
+- จำนวน Audit Record ที่มี outcome `SUCCESS` = 1
+- จำนวน Activity Event = เพิ่มขึ้น 1 รายการต่อ retry หนึ่งครั้ง โดยมี outcome `IDEMPOTENT_REPLAY`
+- response body และ status code ต้องเหมือน response แรกทุกประการ
+
+### Denied Response Policy
+
+เมื่อ authenticated user ไม่มีสิทธิ์เข้าถึง resource ที่มีอยู่จริง server ต้องคืน `404 Not Found` ไม่ใช่ `403 Forbidden` เพื่อไม่เปิดเผยการมีอยู่ของ resource ข้าม tenant
+
+`403 Forbidden` ใช้เฉพาะกรณีที่ผู้เรียกมีสิทธิ์เห็น resource นั้นอยู่แล้วแต่ไม่มีสิทธิ์ทำ action ที่ร้องขอ
+
+ทั้งสองกรณีต้องสร้าง Audit Record ด้วย outcome `DENIED`
+
 ## 4. Functional Acceptance Criteria
 
 ### AC-01 Protected Access
@@ -57,7 +111,7 @@ Then เห็นเฉพาะ projects ใน scope ที่ได้รั�
 
 Given authenticated user ไม่มี project management permission
 When พยายาม add/edit project
-Then server คืน forbidden และสร้าง activity/audit evidence ของผลล้มเหลวตาม policy โดยไม่เปิดเผยข้อมูลเกินสิทธิ์
+Then server คืน response ตาม Denied Response Policy ในหัวข้อ 3.1 และสร้าง Activity Event กับ Audit Record ที่มี outcome `DENIED` ทั้งคู่
 
 ### AC-05 Repository Selection
 
@@ -91,7 +145,7 @@ Error response ต้องไม่เปิดเผยว่า repository �
 
 Given create request ใช้ idempotency key และ payload เดิม
 When client retry
-Thenระบบคืนผลเดิมโดยไม่สร้าง Project, Activity success หรือ Audit mutation ซ้ำเกิน policy
+Then ระบบคืนผลเดิมตาม Idempotency Replay Policy ในหัวข้อ 3.1 — Project = 1, Audit Record ที่มี outcome `SUCCESS` = 1, Activity Event เพิ่มหนึ่งรายการต่อ retry ด้วย outcome `IDEMPOTENT_REPLAY` และ response body กับ status code เหมือนเดิมทุกประการ
 
 ### AC-10 Idempotency Misuse
 
@@ -141,13 +195,20 @@ Thenระบบปฏิเสธด้วย conflict response แทนกา
 
 ## 5. Audit and Security Acceptance Criteria
 
+AC-38 ถึง AC-40 ถูกเพิ่มภายหลังและวางไว้ในหัวข้อนี้ตามเนื้อหา หมายเลข AC เดิมทั้งหมดคงเดิมเพื่อไม่ให้การอ้างอิงจากเอกสารและ review ก่อนหน้าเสีย ลำดับหมายเลขจึงไม่เรียงตามลำดับในเอกสาร
+
 ### AC-17 Activity Event
 
-ทุก create/refresh/update attempt ที่มีความหมายต้องสร้าง human-readable Activity Event พร้อม actor, action, target, outcome, timestamp และ correlation ID
+ทุก action ในตาราง Recorded Actions หัวข้อ 3.1 ต้องสร้าง human-readable Activity Event ตาม Activity Event Policy พร้อม actor, action code, target, outcome, timestamp และ correlation ID
 
 ### AC-18 Immutable Audit Record
 
-ทุก successful business mutation และ security-significant denied action ตาม policy ต้องมี Audit Record ที่ application API ทั่วไปแก้หรือลบไม่ได้
+ต้องสร้าง Audit Record ตาม Audit Record Policy ในหัวข้อ 3.1
+
+ความ immutable ต้องพิสูจน์ได้สองระดับ:
+
+1. ไม่มี HTTP route ใดใน application รองรับ `PUT`, `PATCH` หรือ `DELETE` บน audit resource — ยืนยันด้วยการตรวจ route inventory
+2. database role ที่ application ใช้เชื่อมต่อ ต้องไม่มีสิทธิ์ `UPDATE` หรือ `DELETE` บนตาราง `audit_records` — ยืนยันด้วย test ที่พยายามรันคำสั่งแล้วต้องได้ permission error
 
 ### AC-19 Sanitized Audit Payload
 
@@ -171,6 +232,36 @@ API response/error ที่เหมาะสมต้องมี correlation 
 ### AC-22 Server-side Authorization Tests
 
 ต้องมี negative tests ที่แก้ payload, role field, organization ID และ project ID เพื่อยืนยันว่า horizontal/vertical privilege escalation ถูกปฏิเสธ
+
+### AC-38 Session and CSRF Protection
+
+Slice 1 เป็น Slice ที่ส่งมอบ authentication และ authenticated mutation จึงต้องมี browser-security gate ตาม `docs/SYSTEM_ARCHITECTURE.md` §9
+
+- state-changing request ทุกตัวที่ใช้ browser session ต้องมี CSRF protection ที่ตรวจฝั่ง server
+- request ที่ไม่มี CSRF token หรือมี token ที่ไม่ถูกต้อง ต้องถูกปฏิเสธและไม่ mutate state
+- session cookie ต้องตั้ง `HttpOnly`, `Secure` และ `SameSite` อย่างน้อยระดับ `Lax`
+- session identifier ต้องถูกสร้างใหม่หลัง authentication สำเร็จ เพื่อป้องกัน session fixation
+- ต้องมี logout ที่ทำให้ session ฝั่ง server ใช้ต่อไม่ได้จริง ไม่ใช่เพียงลบ cookie ฝั่ง browser
+- ต้องมี test ที่ยืนยันทั้ง 5 ข้อข้างต้น
+
+### AC-39 Rate Limiting
+
+- authentication endpoint และ mutation endpoint ต้องมี rate limit ฝั่ง server
+- เมื่อเกิน limit ต้องคืน `429` พร้อม stable error code และไม่ mutate state
+- rate-limit counter ต้องนับ request ที่ไม่ผ่าน authentication ด้วย
+- rate-limit response ต้องไม่เปิดเผยว่า account หรือ resource นั้นมีอยู่จริงหรือไม่
+- ค่า limit ที่เลือกต้องบันทึกในเอกสาร operational limitations ตาม AC-36
+
+### AC-40 Secure Headers
+
+response ของ HTML document ต้องมี header อย่างน้อย:
+
+- `Content-Security-Policy` ที่ไม่อนุญาต `unsafe-inline` สำหรับ script
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy` ที่ไม่ส่ง full URL ข้าม origin
+- `Strict-Transport-Security` เมื่อให้บริการผ่าน HTTPS
+
+ต้องมี test ที่ assert header เหล่านี้บน response จริง ไม่ใช่ตรวจจาก configuration file อย่างเดียว
 
 ## 6. UX Acceptance Criteria
 
@@ -322,9 +413,11 @@ Implementation Owner ต้องแนบ:
 
 ## 9. Definition of Done
 
+Slice 1 เริ่มเขียน code ได้เมื่อครบ prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 — technology stack ADR, authentication provider ADR, secret management approach, Acceptance Criteria ที่ทดสอบได้ครบทุกข้อ และ Active Lane ที่ Product Owner อนุมัติ
+
 Slice 1 ถือว่าเสร็จเมื่อ:
 
-1. Acceptance Criteria ผ่านตาม evidence
+1. Acceptance Criteria ทั้ง AC-01 ถึง AC-40 ผ่านตาม evidence
 2. ไม่มี unresolved P0
 3. P1/P2 ถูกบันทึก backlog
 4. GPT Final Review เสร็จ

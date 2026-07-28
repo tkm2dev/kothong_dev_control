@@ -110,3 +110,11 @@ Approval และ audit record เป็น append-only ในเชิงธ�
 - ห้ามเขียน application code
 - ห้ามสร้าง merge/deploy automation
 - ห้ามเพิ่ม autonomous behavior
+
+## 11. Slice 1 Implementation Prerequisites
+
+Foundation Merge ปลดล็อกเฉพาะการวางแผนและการตัดสินใจที่เหลือ ไม่ได้ปลดล็อกการเขียน code
+
+การเขียน application code ของ Slice 1 เริ่มได้เมื่อครบทั้ง 5 ข้อตาม `AGENTS.md` §10 — technology stack ADR, authentication provider ADR, secret management approach, Acceptance Criteria ที่ทดสอบได้ครบทุกข้อ และ Active Lane ที่ Product Owner อนุมัติ
+
+การละเมิด gate นี้ถือเป็น blocking conflict ตามหัวข้อ 7

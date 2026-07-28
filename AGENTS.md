@@ -113,3 +113,19 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 - ห้ามเริ่ม application code
 - ห้ามสร้าง Merge หรือ Deploy automation
 - ทำได้เฉพาะเอกสาร governance, architecture, domain, UX, schema, roadmap และ slice planning
+
+## 10. Slice 1 Implementation Prerequisites
+
+Foundation Merge **ไม่ได้** ปลดล็อกการเขียน application code โดยอัตโนมัติ การ merge Foundation ปลดล็อกเพียงการวางแผนและการตัดสินใจที่เหลือ
+
+Implementation ของ Slice 1 เริ่มได้เมื่อครบทุกข้อต่อไปนี้ และแต่ละข้อต้องมีหลักฐานบน `main`:
+
+1. ADR เลือก implementation technology stack — merged และสถานะ `Accepted`
+2. ADR เลือก authentication provider — merged และสถานะ `Accepted`
+3. Secret management approach ที่ระบุแล้วว่าใช้ secret manager ใดหรือ envelope encryption แบบใด — merged
+4. Slice 1 Acceptance Criteria ไม่มีข้อที่เขียน test ไม่ได้เหลืออยู่
+5. Product Owner กำหนด Implementation Owner และอนุมัติ Active Lane
+
+ห้ามเริ่มเขียน application code ของ Slice 1 ก่อนครบทั้ง 5 ข้อ แม้ Foundation Pack จะ merge แล้วก็ตาม
+
+ADR ที่ยังมีสถานะ `Proposed` ไม่นับว่าตัดสินแล้ว
