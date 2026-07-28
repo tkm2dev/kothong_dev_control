@@ -8,6 +8,8 @@
 
 - human authentication
 - organization/project authorization boundary
+- GitHub App installation — minimal read-only connection สำหรับ metadata lookup
+- server-side GitHub API access และ credential handling ของ installation
 - GitHub installation/repository selection or verified `owner/name` fallback
 - server-side repository metadata lookup
 - Project Registry list/detail/add flow
@@ -22,7 +24,10 @@
 
 - application-controlled branch creation
 - Pull Request creation
-- GitHub webhooks and full synchronization
+- GitHub webhooks, signature verification และ delivery dedupe
+- scheduled reconciliation และ drift detection
+- branch/PR/check projections และ sync health UI
+- write operation ใดๆ ไปยัง GitHub
 - Task Board, Active Lanes, AI Sessions, Conflicts
 - Review Queue and Approval Center
 - Merge or Deploy endpoint/UI

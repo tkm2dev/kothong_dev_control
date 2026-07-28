@@ -44,6 +44,8 @@ No application code is allowed in this phase
 ### Slice 1 Project Registry and Audit Foundation
 
 - human authentication and authorization boundary
+- GitHub App installation — minimal read-only connection
+- server-side GitHub API access for repository metadata
 - register accessible GitHub repository metadata
 - Project Registry UI
 - idempotent project creation
@@ -70,11 +72,12 @@ No application code is allowed in this phase
 
 ### Slice 4 GitHub Read Synchronization
 
-- GitHub App installation
 - repository/branch/PR/check sync
 - webhook validation and deduplication
 - scheduled reconciliation
 - drift and freshness UI
+
+GitHub App installation และ server-side API access ส่งมอบใน Slice 1 แล้ว Slice นี้ต่อยอด ไม่ได้สร้างใหม่
 
 ### Slice 5 Review Queue
 

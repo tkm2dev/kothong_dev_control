@@ -43,6 +43,8 @@ Product Owner สามารถยืนยันตัวตน เลือ�
 
 - human authentication
 - server-side authorization
+- **GitHub App installation — minimal read-only connection**
+- **server-side GitHub API access สำหรับอ่าน repository metadata**
 - Project Registry UI ตาม Warm Operational Console
 - repository metadata verification
 - idempotent project registration
@@ -50,10 +52,15 @@ Product Owner สามารถยืนยันตัวตน เลือ�
 - activity and audit records
 - tests and operational documentation
 
+Slice 1 ต้องเลือก GitHub installation และตรวจ repository ฝั่ง server จึงต้องมี GitHub connection ขั้นต่ำอยู่ใน Slice นี้ ไม่สามารถเลื่อนไป Slice 4 ได้ ขอบเขตจำกัดเฉพาะ read-only metadata lookup ส่วน synchronization เต็มรูปแบบยังอยู่ใน Slice 4
+
 ### Excluded
 
 - branch/PR creation
-- webhook sync
+- webhook receiving and signature verification
+- scheduled reconciliation
+- branch/PR/check projections
+- sync health UI
 - task board
 - lane/session management
 - review/approval
@@ -114,12 +121,16 @@ Product Owner จัดลำดับ Slice และมอบ Active Lane ใ�
 
 ### Scope
 
-- GitHub App installation
-- server-side GitHub API access
 - webhook signature verification and delivery dedupe
 - repository/branch/PR/check projections
 - scheduled reconciliation
+- drift detection และ freshness threshold
 - sync health UI
+- ขยาย GitHub API access จาก read-only metadata lookup ใน Slice 1 ให้ครอบคลุม branch, PR และ check
+
+### Prerequisite
+
+GitHub App installation และ server-side GitHub API access ถูกส่งมอบใน Slice 1 แล้ว Slice นี้ต่อยอดจากของเดิม ไม่ได้สร้างใหม่
 
 ### Excluded
 
