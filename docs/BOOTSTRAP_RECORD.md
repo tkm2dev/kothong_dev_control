@@ -29,13 +29,13 @@ Repository `tkm2dev/kothong_dev_control` มี metadata ระบุ default br
 
 ## Governance Interpretation
 
-นี่เป็น technical bootstrap exception เพราะไม่มี base commit/branch สำหรับทำ branch-first workflow ไม่ใช่การอนุญาตให้ commit application code หรือเอกสารทั่วไปตรงเข้า `main`
+นี่เป็น technical bootstrap exception เพราะไม่มี base commit/branch สำหรับทำ branch-first workflow ไม่ใช่การอนุญาตให้ commit โค้ด เอกสาร configuration หรือการเปลี่ยนแปลงอื่นใดตรงเข้า `main` ในอนาคต
 
-ตั้งแต่ commit แรกเป็นต้นไป ให้บังคับกฎ:
+ตั้งแต่ initial bootstrap commit เป็นต้นไป ให้บังคับกฎ:
 
 - branch-first
 - worktree-first สำหรับ implementation
-- no direct application commit to `main`
+- no direct commit to `main`
 - no rebase
 - no force-push
 - no Merge/Deploy without Product Owner approval
