@@ -70,7 +70,7 @@ Session ต้องไม่ claim role หรือ permission จาก clien
 - ห้าม rebase และ force-push
 - หาก `main` ขยับ ให้ merge `origin/main` เข้า feature branch
 - ห้ามใช้ branch เดียวกันร่วมกันหลาย implementation owners
-- ห้าม commit application code ตรงเข้า `main`
+- ห้าม commit ตรงเข้า `main` หลัง initial bootstrap ที่บันทึกใน `docs/BOOTSTRAP_RECORD.md`
 
 ## 8. Scope Declaration and Conflict Handling
 
