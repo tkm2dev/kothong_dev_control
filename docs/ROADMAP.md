@@ -136,15 +136,40 @@ Candidate capabilities after operational evidence:
 
 ### P0 Foundation / Governance
 
-- disable rebase merge in repository settings
-- protect `main` from direct push and force-push
-- require PR before merge
-- define protected status checks when CI exists
-- establish secret management approach
-- select authentication provider
-- select implementation technology stack
+| รายการ | สถานะ |
+|---|---|
+| disable rebase merge in repository settings | DONE 2026-07-29 — `allow_rebase_merge: false` |
+| protect `main` from direct push and force-push | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
+| require PR before merge | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
+| define protected status checks when CI exists | BLOCKED — ต้องมี branch protection ก่อน |
+| establish secret management approach | OPEN |
+| select authentication provider | OPEN |
+| select implementation technology stack | OPEN |
 
 Repository setting changes require Product Owner approval and are not part of the current documentation write unless explicitly ordered
+
+### ข้อจำกัดการบังคับใช้ ณ ปัจจุบัน
+
+ตรวจเมื่อ 2026-07-29: `GET /repos/tkm2dev/kothong_dev_control/branches/main/protection` และ `GET /repos/tkm2dev/kothong_dev_control/rulesets` คืน HTTP 403 พร้อมข้อความ `"Upgrade to GitHub Pro or make this repository public to enable this feature"`
+
+branch protection และ repository rulesets จึงยังใช้กับ repository นี้ไม่ได้ภายใต้ plan และ visibility ปัจจุบัน กฎต่อไปนี้เป็น **convention ที่ไม่มี technical enforcement ที่ platform layer**:
+
+- no direct commit to `main`
+- no force-push
+- require Pull Request before merge
+- required status checks
+
+**Product Owner decision (2026-07-29):** ยอมรับสถานะ convention-only ในระยะแรก ไม่ upgrade plan และไม่เปลี่ยน repository เป็น public
+
+Compensating controls ที่บังคับใช้ได้จริงและถือเป็นข้อผูกพัน:
+
+1. `allow_rebase_merge: false` — ปิดแล้ว ปุ่ม Rebase and merge ไม่ปรากฏ
+2. `allow_auto_merge: false` — ปิดแล้ว ไม่มี auto-merge
+3. ทุกการเปลี่ยนแปลงต้องผ่าน Pull Request แม้ระบบจะไม่บังคับ
+4. Merge ทุกครั้งต้องมี Product Owner approval ที่บันทึกบน Pull Request และผูกกับ exact head SHA
+5. ตรวจ direct commit ย้อนหลังเป็นระยะด้วย `git log main --first-parent --no-merges` — commit ที่ไม่ใช่ merge commit และไม่ใช่ bootstrap commit ถือเป็นการละเมิด ต้องบันทึกเป็น incident
+
+**Revisit trigger:** ต้องทบทวนหัวข้อนี้ทันทีเมื่อ repository เปลี่ยน plan เปลี่ยน visibility หรือเพิ่มผู้มีสิทธิ์ write นอกเหนือจาก Product Owner
 
 ### P1 Product
 

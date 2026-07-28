@@ -72,6 +72,8 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 - ห้าม Deploy จาก feature branch
 - Pull Request ต้องอธิบาย scope, evidence, risks และ known limitations
 
+กฎข้างต้นเป็น **convention ที่ไม่มี technical enforcement** — branch protection ยังใช้กับ repository นี้ไม่ได้ ทุกคนที่มีสิทธิ์ write สามารถ push เข้า `main` ได้ในทางเทคนิค ความรับผิดชอบจึงอยู่ที่ผู้ปฏิบัติทั้งหมด ดู `docs/ROADMAP.md` หัวข้อ "ข้อจำกัดการบังคับใช้ ณ ปัจจุบัน"
+
 ## 6. Standard Workflow
 
 1. Product Owner กำหนดเป้าหมาย

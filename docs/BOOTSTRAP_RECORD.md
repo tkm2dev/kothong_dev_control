@@ -42,12 +42,14 @@ Repository `tkm2dev/kothong_dev_control` มี metadata ระบุ default br
 
 ## Follow-up Control
 
-เสนอให้ Product Owner อนุมัติการตั้งค่า repository ภายหลัง:
+| การตั้งค่าที่เสนอ | สถานะ |
+|---|---|
+| disable rebase merge | DONE 2026-07-29 |
+| protect `main` | ใช้ไม่ได้ — branch protection ไม่มีให้ใช้บน plan/visibility ปัจจุบัน |
+| require Pull Request | ใช้ไม่ได้ — เหตุผลเดียวกัน |
+| prohibit force-push | ใช้ไม่ได้ — เหตุผลเดียวกัน |
+| require status checks เมื่อ CI พร้อม | ใช้ไม่ได้ — ต้องมี branch protection ก่อน |
 
-- disable rebase merge
-- protect `main`
-- require Pull Request
-- prohibit force-push
-- require status checks เมื่อ CI พร้อม
+`GET /branches/main/protection` และ `GET /rulesets` คืน HTTP 403 `"Upgrade to GitHub Pro or make this repository public to enable this feature"` (ตรวจเมื่อ 2026-07-29)
 
-การเปลี่ยน repository settings ไม่ได้ดำเนินการใน Foundation Pack นี้
+Product Owner ตัดสินใจเมื่อ 2026-07-29 ให้ยอมรับสถานะ convention-only กฎ no-direct-commit, no-force-push และ require-PR จึงมีผลผูกพันในเชิงกระบวนการแต่ **ไม่มี technical enforcement** รายละเอียดและ compensating controls อยู่ใน `docs/ROADMAP.md` หัวข้อ "ข้อจำกัดการบังคับใช้ ณ ปัจจุบัน"
