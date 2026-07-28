@@ -43,7 +43,7 @@ KOTHONG DEV CONTROL เป็น Web Application สำหรับควบค�
 
 - ห้าม rebase
 - ห้าม force-push
-- ห้าม commit application code ตรง `main`
+- ห้าม commit ตรงเข้า `main` หลัง initial bootstrap ที่บันทึกใน `docs/BOOTSTRAP_RECORD.md`
 - เมื่อ `main` ขยับ ให้ merge `origin/main` เข้า feature branch
 - ห้าม Merge/Deploy โดยไม่มีคำสั่ง PO
 - Deploy ได้เฉพาะ exact commit ที่อยู่บน `main`
