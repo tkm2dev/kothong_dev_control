@@ -125,7 +125,13 @@ Exceptional states: `CONFLICTED`, `EXPIRED`, `REVOKED`
 
 ### ApprovalRequest
 
-`REQUESTED → APPROVED | REJECTED | EXPIRED | SUPERSEDED → CONSUMED`
+`REQUESTED → APPROVED → CONSUMED`
+
+Terminal states without execution: `REJECTED`, `EXPIRED`, `SUPERSEDED`
+
+เฉพาะ `APPROVED` เท่านั้นที่ consume ได้ และ consume ได้เพียงครั้งเดียว
+
+`APPROVED` ต้องเปลี่ยนเป็น `SUPERSEDED` หรือ `EXPIRED` ทันทีที่ target SHA เปลี่ยนหรือหมดอายุ และเมื่อเปลี่ยนแล้วจะกลับมา consume ไม่ได้อีก
 
 ## 3. Important Invariants
 
