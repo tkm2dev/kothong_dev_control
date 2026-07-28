@@ -77,6 +77,7 @@ AI session identities must not be stored as human users with Product Owner roles
 ### github_repositories
 
 - `id`
+- `organization_id`
 - `project_id`
 - `installation_id`
 - `external_repository_id`
@@ -86,8 +87,12 @@ AI session identities must not be stored as human users with Product Owner roles
 - `default_branch`
 - `access_status`
 - `last_verified_at`
-- unique `external_repository_id`
+- unique `(organization_id, external_repository_id)`
 - unique `project_id`
+
+`organization_id` ต้อง denormalize ลงตารางนี้เพื่อให้ unique constraint บังคับได้ที่ระดับ database และต้องสอดคล้องกับ `projects.organization_id` เสมอ
+
+ห้ามใช้ global unique บน `external_repository_id` เพราะจะทำให้ organization หนึ่งบล็อกการลงทะเบียนของอีก organization และทำให้ error response เปิดเผยการมีอยู่ของ registration ข้าม tenant
 
 ### github_sync_runs
 

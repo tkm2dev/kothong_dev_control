@@ -76,9 +76,11 @@ Thenระบบสร้าง Project และ GitHub repository binding ใ�
 
 ### AC-08 Duplicate Repository
 
-Given external repository ID เดิมถูกลงทะเบียนใน organization แล้ว
+Given external repository ID เดิมถูกลงทะเบียนใน organization เดียวกันแล้ว
 When submit ซ้ำ
-Thenระบบไม่สร้าง duplicate และคืน existing resource หรือ domain conflict ที่กำหนดอย่างสม่ำเสมอ
+Then ระบบไม่สร้าง duplicate และคืน conflict response พร้อม stable error code เดิมทุกครั้ง ห้ามคืน existing resource เป็น success เพราะจะซ้อนกับ semantics ของ idempotent retry ใน AC-09
+
+Error response ต้องไม่เปิดเผยว่า repository ถูกลงทะเบียนโดย organization หรือ project ใด หากผู้เรียกไม่มีสิทธิ์อ่าน resource นั้น
 
 ### AC-09 Idempotent Retry
 
@@ -218,7 +220,9 @@ Project mutation, Activity Event, Audit Record และ Outbox Event (ถ้า
 
 ### AC-29 Database Constraints
 
-ต้องมี database-level uniqueness สำหรับ external repository binding ตาม scope ที่กำหนด ไม่พึ่ง application check อย่างเดียว
+ต้องมี database-level unique constraint บน `(organization_id, external_repository_id)` ในตาราง `github_repositories` ไม่พึ่ง application check อย่างเดียว
+
+ต้องมี integration test ที่ยืนยันว่า concurrent insert ของ external repository ID เดียวกันใน organization เดียวกัน สำเร็จเพียงรายการเดียว
 
 ### AC-30 Contract Validation
 
