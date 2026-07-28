@@ -15,7 +15,7 @@ Current Foundation branch: `agent/foundation-pack`
 - One active implementation owner per slice.
 - One owner per pull request.
 - No rebase and no force-push.
-- No direct application commits to `main`.
+- No direct commits to `main` after the one-time bootstrap recorded in `docs/BOOTSTRAP_RECORD.md`.
 - No merge or deploy without explicit Product Owner approval.
 - Deploy only commits already merged into `main`.
 - AI cannot approve on behalf of the Product Owner.
