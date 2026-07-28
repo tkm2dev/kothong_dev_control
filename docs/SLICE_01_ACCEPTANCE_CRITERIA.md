@@ -222,7 +222,17 @@ Project mutation, Activity Event, Audit Record และ Outbox Event (ถ้า
 
 ต้องมี database-level unique constraint บน `(organization_id, external_repository_id)` ในตาราง `github_repositories` ไม่พึ่ง application check อย่างเดียว
 
-ต้องมี integration test ที่ยืนยันว่า concurrent insert ของ external repository ID เดียวกันใน organization เดียวกัน สำเร็จเพียงรายการเดียว
+ต้องมี composite foreign key ที่บังคับ tenant boundary ที่ระดับ database ตาม `docs/DATABASE_SCHEMA.md` หัวข้อ Tenant Integrity Rule:
+
+- `(project_id, organization_id)` → `projects (id, organization_id)`
+- `(installation_id, organization_id)` → `github_installations (id, organization_id)`
+
+ต้องมี test ครอบคลุมอย่างน้อย:
+
+1. concurrent insert ของ external repository ID เดียวกันใน organization เดียวกัน สำเร็จเพียงรายการเดียว
+2. request ที่อ้าง `project_id` ของ organization อื่น ถูกปฏิเสธที่ระดับ database ไม่ใช่เฉพาะที่ application layer
+3. request ที่อ้าง `installation_id` ของ organization อื่น ถูกปฏิเสธที่ระดับ database
+4. การพยายาม insert โดยข้าม application service ไปเขียน database ตรง ด้วยชุดค่าที่ข้าม tenant ต้อง fail ด้วย constraint violation
 
 ### AC-30 Contract Validation
 
@@ -233,6 +243,7 @@ API validate identifiers, strings, enum, pagination และ idempotency header
 ครอบคลุมอย่างน้อย:
 
 - repository uniqueness
+- tenant integrity เมื่ออ้าง Project หรือ Installation ข้าม organization
 - authorization policy
 - idempotency semantics
 - optimistic concurrency

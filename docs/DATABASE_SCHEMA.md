@@ -63,6 +63,7 @@ AI session identities must not be stored as human users with Product Owner roles
 - `policy_version`
 - `version`
 - timestamps
+- unique `(id, organization_id)` — composite key สำหรับให้ตารางลูกอ้างอิงแบบ tenant-safe
 
 ### github_installations
 
@@ -73,6 +74,7 @@ AI session identities must not be stored as human users with Product Owner roles
 - `status`
 - `secret_reference` nullable; never plaintext token
 - unique `external_installation_id`
+- unique `(id, organization_id)` — composite key สำหรับให้ตารางลูกอ้างอิงแบบ tenant-safe
 
 ### github_repositories
 
@@ -89,10 +91,24 @@ AI session identities must not be stored as human users with Product Owner roles
 - `last_verified_at`
 - unique `(organization_id, external_repository_id)`
 - unique `project_id`
+- foreign key `(project_id, organization_id)` → `projects (id, organization_id)`
+- foreign key `(installation_id, organization_id)` → `github_installations (id, organization_id)`
 
-`organization_id` ต้อง denormalize ลงตารางนี้เพื่อให้ unique constraint บังคับได้ที่ระดับ database และต้องสอดคล้องกับ `projects.organization_id` เสมอ
+`organization_id` ต้อง denormalize ลงตารางนี้เพื่อให้ unique constraint บังคับได้ที่ระดับ database
+
+**การอ้างอิง `project_id` และ `installation_id` ต้องใช้ composite foreign key ที่รวม `organization_id` เสมอ** ไม่ใช่ single-column FK เพราะ single-column FK จะยอมให้ row ผูก Project ของ organization หนึ่งเข้ากับ Installation ของอีก organization หนึ่งได้ ทำให้ tenant boundary ถูกข้ามที่ระดับข้อมูล และ application check อย่างเดียวป้องกันไม่ได้เมื่อมี concurrent write หรือ code path ที่ลืมตรวจ
 
 ห้ามใช้ global unique บน `external_repository_id` เพราะจะทำให้ organization หนึ่งบล็อกการลงทะเบียนของอีก organization และทำให้ error response เปิดเผยการมีอยู่ของ registration ข้าม tenant
+
+### Tenant Integrity Rule
+
+ทุกตารางที่อ้างอิง resource ข้าม aggregate ภายใน organization เดียวกัน ต้องบังคับ tenant boundary ที่ระดับ database ไม่ใช่ที่ application layer
+
+- ตาราง parent ที่ถูกอ้างอิงข้าม aggregate ต้องมี composite unique `(id, organization_id)`
+- ตาราง child ต้อง denormalize `organization_id` และใช้ composite foreign key ที่รวม `organization_id`
+- ห้ามใช้ single-column foreign key สำหรับความสัมพันธ์ที่ข้าม aggregate ภายใน tenant
+
+กฎนี้ใช้กับ `github_repositories` เป็นอย่างน้อย และต้องทบทวนกับทุกตารางที่เพิ่มความสัมพันธ์ข้าม aggregate ใน Slice ถัดไป เช่น `active_lanes`, `pull_request_links`, `approval_requests` และ `deployments` เมื่อ Slice นั้นถูก implement
 
 ### github_sync_runs
 
