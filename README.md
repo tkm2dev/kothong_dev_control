@@ -26,6 +26,7 @@ Current Foundation branch: `agent/foundation-pack`
 ## Foundation Pack
 
 - [`AGENTS.md`](AGENTS.md)
+- [`docs/BOOTSTRAP_RECORD.md`](docs/BOOTSTRAP_RECORD.md)
 - [`docs/TEAM_DEVELOPMENT_MODEL.md`](docs/TEAM_DEVELOPMENT_MODEL.md)
 - [`docs/PRODUCT_AND_BUSINESS_RULES.md`](docs/PRODUCT_AND_BUSINESS_RULES.md)
 - [`docs/SYSTEM_ARCHITECTURE.md`](docs/SYSTEM_ARCHITECTURE.md)
