@@ -223,7 +223,13 @@ Audit/activity/outbox/log ต้องไม่บรรจุ:
 
 ### AC-20 Secret Storage
 
-ถ้าต้องใช้ secret ใน Slice นี้ ต้องเก็บผ่าน secret manager reference หรือ approved encrypted mechanism แยกจาก project metadata และไม่คืนค่ากลับ UI
+Slice 1 มี GitHub App installation และ server-side GitHub API access อยู่ใน scope จึงต้องจัดการ credential แน่นอน AC ข้อนี้เป็นข้อบังคับ ไม่ใช่เงื่อนไข
+
+- GitHub App private key และ installation access token ต้องเก็บผ่าน secret manager reference หรือ approved encrypted mechanism ตาม secret management approach ที่ merged แล้วตาม `AGENTS.md` §10 ข้อ 3
+- secret ต้องเก็บแยกจาก project metadata และไม่อยู่ในตารางที่ query ทั่วไปเข้าถึง
+- ไม่คืน secret value กลับ UI หรือ API response ในทุกกรณี รวมถึงหลังบันทึกสำเร็จ
+- installation access token ที่มีอายุสั้นต้องไม่ถูก persist เกินความจำเป็น และต้องระบุอายุที่ใช้จริงในเอกสาร operational limitations ตาม AC-36
+- ต้องมี test ที่ยืนยันว่า secret ไม่ปรากฏใน API response, log, activity, audit และ rendered UI ตาม AC-34
 
 ### AC-21 Correlation
 

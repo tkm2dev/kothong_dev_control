@@ -4,7 +4,9 @@
 
 ใช้ PostgreSQL เป็น primary transactional database รองรับ foreign keys, partial unique indexes, JSONB สำหรับ normalized external payload บางส่วน, optimistic concurrency และ transactional outbox
 
-ชื่อ primary key ใช้ UUID/ULID ตาม technology decision ใน Slice 1 แต่ external GitHub IDs ต้องเก็บแยกและมี unique constraint
+ชื่อ primary key ใช้ UUID หรือ ULID โดยตัดสินใน technology stack ADR ซึ่งต้อง merged และมีสถานะ `Accepted` **ก่อน** Slice 1 implementation เริ่ม ตาม `AGENTS.md` §10 ข้อ 1 ไม่ใช่ตัดสินระหว่างทำ Slice 1
+
+external GitHub IDs ต้องเก็บแยกจาก primary key และมี unique constraint เสมอ ไม่ว่าจะเลือก UUID หรือ ULID
 
 ทุก business table ควรมี `created_at`, `updated_at` และ `version` เมื่อมี concurrent mutation ยกเว้น append-only records
 
