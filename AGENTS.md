@@ -63,7 +63,7 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 ## 5. Git Rules
 
 - Branch-first และ Worktree-first
-- ห้าม commit application code ตรงเข้า `main`
+- ห้าม commit ตรงเข้า `main` หลัง initial bootstrap ที่บันทึกใน `docs/BOOTSTRAP_RECORD.md`
 - ห้าม rebase
 - ห้าม force-push
 - ถ้า `main` ขยับ ให้ merge `origin/main` เข้า feature branch
