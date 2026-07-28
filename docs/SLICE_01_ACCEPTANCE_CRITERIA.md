@@ -195,7 +195,7 @@ Thenระบบปฏิเสธด้วย conflict response แทนกา
 
 ## 5. Audit and Security Acceptance Criteria
 
-AC-38 ถึง AC-40 ถูกเพิ่มภายหลังและวางไว้ในหัวข้อนี้ตามเนื้อหา หมายเลข AC เดิมทั้งหมดคงเดิมเพื่อไม่ให้การอ้างอิงจากเอกสารและ review ก่อนหน้าเสีย ลำดับหมายเลขจึงไม่เรียงตามลำดับในเอกสาร
+AC-38 ถึง AC-41 ถูกเพิ่มภายหลังและวางไว้ในหัวข้อนี้ตามเนื้อหา หมายเลข AC เดิมทั้งหมดคงเดิมเพื่อไม่ให้การอ้างอิงจากเอกสารและ review ก่อนหน้าเสีย ลำดับหมายเลขจึงไม่เรียงตามลำดับในเอกสาร
 
 ### AC-17 Activity Event
 
@@ -268,6 +268,21 @@ response ของ HTML document ต้องมี header อย่างน้
 - `Strict-Transport-Security` เมื่อให้บริการผ่าน HTTPS
 
 ต้องมี test ที่ assert header เหล่านี้บน response จริง ไม่ใช่ตรวจจาก configuration file อย่างเดียว
+
+### AC-41 Untrusted GitHub Content
+
+Slice 1 แสดง repository name, owner login และ description ที่มาจาก GitHub ซึ่งบุคคลภายนอกเขียนได้ ต้องปฏิบัติตาม Untrusted External Content Rule ใน `docs/SYSTEM_ARCHITECTURE.md` §4
+
+- content จาก GitHub ต้อง render เป็น text เท่านั้น ห้าม inject เป็น raw HTML
+- URL ที่มาจาก GitHub ต้อง validate scheme ก่อนแสดงเป็นลิงก์ อนุญาตเฉพาะ `https` และลิงก์ภายนอกต้องมี `rel="noopener noreferrer"`
+- ต้องมี test ที่ใส่ payload อันตรายใน repository name และ description ของ GitHub mock อย่างน้อย:
+  - `<script>` tag
+  - `javascript:` URL
+  - HTML entity และ attribute breakout
+  - string ที่มีข้อความสั่งงาน AI เช่นคำสั่งให้อนุมัติหรือเปิดเผยข้อมูล
+
+  แล้ว assert ว่าไม่มี script ทำงาน ไม่มี markup ถูกตีความ และ content ถูกแสดงเป็นข้อความตามตัวอักษร
+- external content ต้องไม่ถูกใช้เป็น input ของ authorization หรือ policy decision ใดๆ
 
 ## 6. UX Acceptance Criteria
 
@@ -423,7 +438,7 @@ Slice 1 เริ่มเขียน code ได้เมื่อครบ pr
 
 Slice 1 ถือว่าเสร็จเมื่อ:
 
-1. Acceptance Criteria ทั้ง AC-01 ถึง AC-40 ผ่านตาม evidence
+1. Acceptance Criteria ทั้ง AC-01 ถึง AC-41 ผ่านตาม evidence
 2. ไม่มี unresolved P0
 3. P1/P2 ถูกบันทึก backlog
 4. GPT Final Review เสร็จ

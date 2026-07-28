@@ -49,6 +49,8 @@ Slice 1 implementation เริ่มได้เมื่อครบ prerequi
 
 ### Slice 1 Project Registry and Audit Foundation
 
+Status: `BLOCKED` — รอ prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 ห้ามเริ่ม implementation จนกว่าจะปลด
+
 - human authentication and authorization boundary
 - GitHub App installation — minimal read-only connection
 - server-side GitHub API access for repository metadata

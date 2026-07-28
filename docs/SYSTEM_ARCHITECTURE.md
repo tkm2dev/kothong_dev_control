@@ -69,6 +69,16 @@ External systems:
 - GitHub webhook เป็น external input ต้องตรวจ signature, delivery ID และ replay
 - GitHub API response เป็น external source ที่ต้อง normalize และ audit
 - Secret values ต้องอยู่ใน dedicated secret boundary
+- **string ทุกตัวที่มาจาก GitHub เป็น attacker-controlled content** — repository name/description, branch name, commit message, PR title/body, review body, user login และ label ถูกเขียนโดยบุคคลภายนอกได้ ต้องถือเป็น untrusted data เสมอ ไม่ใช่ metadata ที่เชื่อถือได้
+
+### Untrusted External Content Rule
+
+content ที่มาจาก GitHub ห้ามถูกปฏิบัติเป็น markup, code หรือคำสั่ง ไม่ว่าจะปลายทางเป็น browser หรือ AI
+
+- render เป็น text เท่านั้น ห้าม inject เป็น raw HTML และห้ามใช้ mechanism ที่ประเมิน markup จาก string ภายนอก
+- URL ที่มาจาก external content ต้อง validate scheme ก่อนแสดงเป็นลิงก์ อนุญาตเฉพาะ `https` และ link ที่เปิดออกภายนอกต้องมี `rel="noopener noreferrer"`
+- เมื่อส่ง external content ให้ AI ต้องห่อด้วย boundary ที่ระบุชัดว่าเป็นข้อมูล ไม่ใช่คำสั่ง และ AI ต้องไม่ปฏิบัติตาม instruction ที่ปรากฏใน content นั้น
+- external content ที่แสดงใน UI ต้องไม่ถูกใช้เป็น input ของ command หรือ policy decision โดยตรง
 
 ## 5. Command Pattern
 
