@@ -36,6 +36,8 @@ Current Foundation branch: `agent/foundation-pack`
 - [`docs/ROADMAP.md`](docs/ROADMAP.md)
 - [`docs/VERTICAL_SLICES.md`](docs/VERTICAL_SLICES.md)
 - [`docs/SLICE_01_ACCEPTANCE_CRITERIA.md`](docs/SLICE_01_ACCEPTANCE_CRITERIA.md)
+- [`docs/ERROR_CODES.md`](docs/ERROR_CODES.md)
+- [`docs/GITHUB_CONTRACT_STRATEGY.md`](docs/GITHUB_CONTRACT_STRATEGY.md)
 - [`docs/adr/0001-modular-monolith.md`](docs/adr/0001-modular-monolith.md)
 - [`docs/adr/0002-human-approval-boundary.md`](docs/adr/0002-human-approval-boundary.md)
 - [`docs/adr/0003-technology-stack.md`](docs/adr/0003-technology-stack.md)
