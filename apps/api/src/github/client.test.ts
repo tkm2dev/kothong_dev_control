@@ -75,26 +75,26 @@ describe('server-side verification', () => {
     // AC-06. The client is given no browser input at all, so there is nothing
     // it could take from the browser even by mistake.
     const client = new GitHubClient(transportReturning(FIXTURE));
-    const verified = await client.getRepository('ignored', 'ignored');
+    const verified = await client.getRepository('1', 'ignored', 'ignored');
     expect(verified.repositoryName).toBe('kothong_dev_control');
   });
 
   it('records a repository the installation cannot write to as read-only', async () => {
     const readOnly = { ...(FIXTURE as object), permissions: { admin: false, push: false, pull: true } };
     const client = new GitHubClient(transportReturning(readOnly));
-    expect((await client.getRepository('o', 'r')).accessStatus).toBe('READ_ONLY');
+    expect((await client.getRepository('1', 'o', 'r')).accessStatus).toBe('READ_ONLY');
   });
 
   it('records an archived repository as archived', async () => {
     const archived = { ...(FIXTURE as object), archived: true };
     const client = new GitHubClient(transportReturning(archived));
-    expect((await client.getRepository('o', 'r')).accessStatus).toBe('ARCHIVED');
+    expect((await client.getRepository('1', 'o', 'r')).accessStatus).toBe('ARCHIVED');
   });
 
   it('treats a missing permissions block as no write access', async () => {
     const { permissions: _omitted, ...withoutPermissions } = FIXTURE as Record<string, unknown>;
     const client = new GitHubClient(transportReturning(withoutPermissions));
-    expect((await client.getRepository('o', 'r')).accessStatus).toBe('READ_ONLY');
+    expect((await client.getRepository('1', 'o', 'r')).accessStatus).toBe('READ_ONLY');
   });
 });
 
@@ -102,19 +102,19 @@ describe('contract validation', () => {
   it('refuses a response missing a field the system relies on', async () => {
     const { default_branch: _omitted, ...incomplete } = FIXTURE as Record<string, unknown>;
     const client = new GitHubClient(transportReturning(incomplete));
-    expect(await codeOf(client.getRepository('o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
+    expect(await codeOf(client.getRepository('1', 'o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
   });
 
   it('refuses a response where a field changed type', async () => {
     const wrongType = { ...(FIXTURE as object), id: 'not-a-number' };
     const client = new GitHubClient(transportReturning(wrongType));
-    expect(await codeOf(client.getRepository('o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
+    expect(await codeOf(client.getRepository('1', 'o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
   });
 
   it('refuses a visibility value it does not recognise', async () => {
     const unknownVisibility = { ...(FIXTURE as object), visibility: 'something-new' };
     const client = new GitHubClient(transportReturning(unknownVisibility));
-    expect(await codeOf(client.getRepository('o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
+    expect(await codeOf(client.getRepository('1', 'o', 'r'))).toBe('GITHUB_CONTRACT_MISMATCH');
   });
 
   it('fails a page rather than silently dropping an invalid entry', async () => {
@@ -124,7 +124,7 @@ describe('contract validation', () => {
       ...transportReturning(FIXTURE),
       listInstallationRepositories: async () => [FIXTURE, { id: 1 }],
     });
-    expect(await codeOf(client.listRepositories())).toBe('GITHUB_CONTRACT_MISMATCH');
+    expect(await codeOf(client.listRepositories('1'))).toBe('GITHUB_CONTRACT_MISMATCH');
   });
 });
 
@@ -138,7 +138,7 @@ describe('failure mapping', () => {
     ['rate limited', { status: 429 }, 'GITHUB_RATE_LIMITED'],
   ])('maps %s', async (_label, error, expected) => {
     const client = new GitHubClient(transportThrowing(error));
-    expect(await codeOf(client.getRepository('o', 'r'))).toBe(expected);
+    expect(await codeOf(client.getRepository('1', 'o', 'r'))).toBe(expected);
   });
 
   it('separates rate limiting from a permission problem on a 403', async () => {
@@ -170,7 +170,7 @@ describe('failure mapping', () => {
     const client = new GitHubClient(
       transportThrowing({ status: 403, message: 'token ghp_secret_value_here rejected' }),
     );
-    const code = await codeOf(client.getRepository('o', 'r'));
+    const code = await codeOf(client.getRepository('1', 'o', 'r'));
     expect(code).toBe('GITHUB_ACCESS_DENIED');
     expect(code).not.toContain('ghp_');
   });

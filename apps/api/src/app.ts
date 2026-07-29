@@ -7,7 +7,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { Controller, Get, Module, Post, Req, Res } from '@nestjs/common';
+import { Controller, Get, Inject, Module, Post, Req, Res } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -18,7 +18,7 @@ import { AuthController } from './auth/controller.ts';
 import { DrizzleIdentityDirectory, DrizzleSessionStore } from './auth/drizzle-directory.ts';
 import { GitHubOAuth, InMemoryLoginAttemptStore, type OAuthTransport } from './auth/oauth.ts';
 import { SignIn } from './auth/sign-in.ts';
-import type { Config } from './config.ts';
+import { PUBLIC_API_PATH, type Config } from './config.ts';
 import { ApiExceptionFilter, createFastifyErrorHandler } from './errors.ts';
 import { GitHubClient, type GitHubTransport } from './github/client.ts';
 import { ProjectsController, ProjectsRoutes } from './projects/controller.ts';
@@ -44,7 +44,11 @@ export class HealthController {
 
 @Controller('auth')
 export class AuthRoutes {
-  constructor(private readonly auth: AuthController) {}
+  // The token is named rather than inferred from the parameter type. Inference
+  // needs `emitDecoratorMetadata`, which esbuild does not implement, so a build
+  // that used it would resolve to nothing and fail at the first request instead
+  // of at startup.
+  constructor(@Inject(AuthController) private readonly auth: AuthController) {}
 
   @Get('github/start')
   start(@Req() request: FastifyRequest, @Res() reply: FastifyReply): Promise<void> {
@@ -132,7 +136,8 @@ export async function bootstrap(
     {
       clientId: config.GITHUB_OAUTH_CLIENT_ID,
       authorizeUrl: 'https://github.com/login/oauth/authorize',
-      redirectUri: `${config.PUBLIC_ORIGIN}/auth/github/callback`,
+      // Browser-visible, so it carries the public prefix the proxy strips.
+      redirectUri: `${config.PUBLIC_ORIGIN}${PUBLIC_API_PATH}/auth/github/callback`,
       // Only what is needed to identify the human. Repository access comes from
       // the installation, so no repository scope is requested here.
       scopes: ['read:user'],

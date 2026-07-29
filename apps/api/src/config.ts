@@ -30,6 +30,10 @@ export const configSchema = z.object({
   GITHUB_OAUTH_CLIENT_ID: z.string().min(1),
   GITHUB_OAUTH_CLIENT_SECRET: secret(1),
 
+  /** The GitHub App whose installations grant repository access. */
+  GITHUB_APP_ID: z.string().min(1),
+  GITHUB_APP_PRIVATE_KEY: secret(1),
+
   /**
    * Key encryption key material for the envelope scheme in ADR 0005.
    *
@@ -41,6 +45,16 @@ export const configSchema = z.object({
 });
 
 export type Config = Omit<z.infer<typeof configSchema>, never>;
+
+/**
+ * Where the API sits on the public origin.
+ *
+ * The service itself is rooted at `/`; the reverse proxy in front of it strips
+ * this prefix. It matters here because the OAuth redirect URI is a
+ * browser-visible URL and must include the prefix, and because GitHub only
+ * accepts a callback that matches the App's registered value exactly.
+ */
+export const PUBLIC_API_PATH = '/api';
 
 export class ConfigurationError extends Error {}
 

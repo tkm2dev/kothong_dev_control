@@ -7,6 +7,8 @@ const valid = {
   COOKIE_SECRET: 'x'.repeat(32),
   GITHUB_OAUTH_CLIENT_ID: 'client-id',
   GITHUB_OAUTH_CLIENT_SECRET: 'client-secret',
+  GITHUB_APP_ID: '1',
+  GITHUB_APP_PRIVATE_KEY: 'private-key',
 };
 
 const production = (overrides: Partial<Config> = {}): Config =>
@@ -19,6 +21,8 @@ const production = (overrides: Partial<Config> = {}): Config =>
     COOKIE_SECRET: 'x'.repeat(32),
     GITHUB_OAUTH_CLIENT_ID: 'id',
     GITHUB_OAUTH_CLIENT_SECRET: 'secret',
+    GITHUB_APP_ID: '1',
+    GITHUB_APP_PRIVATE_KEY: 'private-key',
     KMS_PROVIDER: 'external',
     ...overrides,
   }) as Config;
@@ -46,7 +50,7 @@ describe('configuration', () => {
     }
   });
 
-  it.each(['DATABASE_URL', 'GITHUB_OAUTH_CLIENT_ID', 'PUBLIC_ORIGIN'])(
+  it.each(['DATABASE_URL', 'GITHUB_OAUTH_CLIENT_ID', 'GITHUB_APP_PRIVATE_KEY', 'PUBLIC_ORIGIN'])(
     'refuses an environment with no %s',
     (key) => {
       const incomplete = { ...valid } as Record<string, string>;

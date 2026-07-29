@@ -7,7 +7,18 @@
  * could be made differently.
  */
 
-import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  Inject,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { ApiError } from '../errors.ts';
 import { GitHubClient } from '../github/client.ts';
@@ -56,9 +67,18 @@ export class ProjectsController {
     const idempotencyKey = requireIdempotencyKey(idempotencyHeader);
     const input = parseOrThrow(createProjectSchema, body);
 
+    // The installation is checked before it is used. `getInstallation` refuses a
+    // suspended one, so a suspended installation cannot register anything.
+    await this.github.getInstallation(input.installationId);
+
     // AC-06. The repository is read from GitHub here; nothing the browser sent
-    // about it is carried forward. `owner` and `repo` only say what to look up.
-    const repository = await this.github.getRepository(input.owner, input.repo);
+    // about it is carried forward. `owner` and `repo` only say what to look up,
+    // and the lookup happens through the caller's own installation.
+    const repository = await this.github.getRepository(
+      input.installationId,
+      input.owner,
+      input.repo,
+    );
 
     const { project } = await this.registry.register({
       actor,
@@ -123,7 +143,8 @@ function correlationOf(request: FastifyRequest): string {
  */
 @Controller('projects')
 export class ProjectsRoutes {
-  constructor(private readonly controller: ProjectsController) {}
+  // Named token, not an inferred one — see the note in `app.ts`.
+  constructor(@Inject(ProjectsController) private readonly controller: ProjectsController) {}
 
   @Post()
   create(

@@ -69,21 +69,33 @@ export function githubErrorToApiError(error: unknown): ApiError {
 
 /** Minimal surface of the underlying client, so tests need no network. */
 export interface GitHubTransport {
-  getRepository(input: { owner: string; repo: string }): Promise<unknown>;
-  listInstallationRepositories(): Promise<unknown[]>;
+  getRepository(input: { installationId: string; owner: string; repo: string }): Promise<unknown>;
+  listInstallationRepositories(input: { installationId: string }): Promise<unknown[]>;
   getInstallation(input: { installationId: string }): Promise<unknown>;
 }
 
 export class GitHubClient {
   constructor(private readonly transport: GitHubTransport) {}
 
-  async getRepository(owner: string, repo: string): Promise<VerifiedRepository> {
-    const raw = await this.#call(() => this.transport.getRepository({ owner, repo }));
+  /**
+   * Every read is scoped to one installation.
+   *
+   * The installation is what grants access, so it has to be part of the call.
+   * A client that could read a repository through whichever installation
+   * happened to have rights would let a caller register a repository their own
+   * installation cannot see.
+   */
+  async getRepository(
+    installationId: string,
+    owner: string,
+    repo: string,
+  ): Promise<VerifiedRepository> {
+    const raw = await this.#call(() => this.transport.getRepository({ installationId, owner, repo }));
     return toVerifiedRepository(this.#parse(repositorySchema, raw));
   }
 
-  async listRepositories(): Promise<VerifiedRepository[]> {
-    const raw = await this.#call(() => this.transport.listInstallationRepositories());
+  async listRepositories(installationId: string): Promise<VerifiedRepository[]> {
+    const raw = await this.#call(() => this.transport.listInstallationRepositories({ installationId }));
     // One bad entry fails the whole page rather than being quietly dropped. A
     // silently shorter list looks identical to an installation with fewer
     // repositories, and the user would have no way to tell.
