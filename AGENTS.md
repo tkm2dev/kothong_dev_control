@@ -123,7 +123,7 @@ Implementation ของ Slice 1 เริ่มได้เมื่อคร�
 1. ADR เลือก implementation technology stack — `docs/adr/0003-technology-stack.md` merged และสถานะ `Accepted`
 2. ADR เลือก authentication provider — `docs/adr/0004-authentication-provider.md` merged และสถานะ `Accepted`
 3. Secret management approach — `docs/adr/0005-secret-management.md` merged และสถานะ `Accepted`
-4. Slice 1 Acceptance Criteria ไม่มีข้อที่เขียน test ไม่ได้เหลืออยู่ — ณ ปัจจุบันเหลือ AC-05, AC-14, AC-23 และ AC-25
+4. Slice 1 Acceptance Criteria ไม่มีข้อที่เขียน test ไม่ได้เหลืออยู่
 5. Product Owner กำหนด Implementation Owner และอนุมัติ Active Lane
 
 ห้ามเริ่มเขียน application code ของ Slice 1 ก่อนครบทั้ง 5 ข้อ แม้ Foundation Pack จะ merge แล้วก็ตาม

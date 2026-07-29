@@ -4,9 +4,9 @@ Human-in-the-loop development control plane for coordinating Product Owner decis
 
 ## Repository status
 
-This repository is in the governance and architecture foundation phase. Application code must not begin until the Foundation Pack and Slice 1 acceptance criteria are approved and merged to `main`.
+The Foundation Pack is approved and merged. All five Slice 1 implementation prerequisites in [`AGENTS.md`](AGENTS.md) §10 are satisfied, so application code for Slice 1 may begin.
 
-Current Foundation branch: `agent/foundation-pack`
+Current work: Slice 1 — Project Registry and Audit Foundation. The Active Lane record is issue #4.
 
 ## Non-negotiable rules
 
@@ -50,6 +50,10 @@ The proposed interface is a warm operational console: cream canvas, dark brown/o
 
 ## Current gate
 
-Status: `FOUNDATION_REVIEW`
+Status: `ACTIVE` — Slice 1 implementation
 
-No application code, merge automation, or deployment automation may begin until the Foundation Pack receives Product Owner approval and is merged through an explicitly approved Pull Request.
+Slice 1 work is bounded by the scope declared in issue #4. Work outside that scope goes to the backlog rather than expanding the active slice.
+
+Merge and deploy automation must still not be built. Every merge requires explicit Product Owner approval bound to an exact head SHA.
+
+**There is no CI in this repository.** No workflow runs on any pull request, so every test result is a claim made by whoever submitted the work rather than something the repository verified.
