@@ -43,13 +43,22 @@ No application code is allowed in this phase
 
 Foundation Merge ปลดล็อกเฉพาะการตัดสินใจที่เหลือของ Phase 1 — technology stack, authentication provider และ secret management approach — **ไม่ได้ปลดล็อกการเขียน application code**
 
-Slice 1 implementation เริ่มได้เมื่อครบ prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 รายการที่ยัง `OPEN` ในหัวข้อ P0 Foundation / Governance ด้านล่างคือสิ่งที่ต้องปิดก่อน
+prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 ปิดครบแล้วเมื่อ 2026-07-29 ผ่าน Pull Request #2, #3, #5 และ Active Lane approval ใน issue #4
 
 ## Phase 2 — Control Plane MVP
 
 ### Slice 1 Project Registry and Audit Foundation
 
-Status: `BLOCKED` — รอ prerequisite ทั้ง 5 ข้อตาม `AGENTS.md` §10 ห้ามเริ่ม implementation จนกว่าจะปลด
+Status: `ACTIVE` ตั้งแต่ 2026-07-29
+
+| | |
+|---|---|
+| Implementation Owner | Claude Code |
+| Active Lane | issue #4 — สถานะ `RESERVED` จนกว่าจะแก้ไฟล์แรก |
+| Branch | `claude/slice-01-project-registry` |
+| Base commit | `6682bc2c58c41d072cbdc6413a22f6551b6dc5b0` |
+
+Acceptance criteria อยู่ใน `docs/SLICE_01_ACCEPTANCE_CRITERIA.md` — AC-01 ถึง AC-41 ทุกข้อเขียน test ได้
 
 - human authentication and authorization boundary
 - GitHub App installation — minimal read-only connection
@@ -153,9 +162,10 @@ Candidate capabilities after operational evidence:
 | protect `main` from direct push and force-push | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
 | require PR before merge | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
 | define protected status checks when CI exists | BLOCKED — ต้องมี branch protection ก่อน |
-| establish secret management approach | ตัดสินใน ADR 0005 — `Accepted` เมื่อ merge พร้อม PO approval |
-| select authentication provider | ตัดสินใน ADR 0004 — `Accepted` เมื่อ merge พร้อม PO approval |
-| select implementation technology stack | ตัดสินใน ADR 0003 — `Accepted` เมื่อ merge พร้อม PO approval |
+| establish secret management approach | DONE 2026-07-29 — ADR 0005 `Accepted` |
+| select authentication provider | DONE 2026-07-29 — ADR 0004 `Accepted` |
+| select implementation technology stack | DONE 2026-07-29 — ADR 0003 `Accepted` |
+| ตั้ง CI ที่รัน test, lint และ scope check | **OPEN** — ยังไม่มี workflow ใดใน repository ทำให้ evidence ทั้งหมดเป็นคำรายงานของผู้ส่งงาน |
 
 Repository setting changes require Product Owner approval and are not part of the current documentation write unless explicitly ordered
 
