@@ -88,19 +88,68 @@ action ที่ต้องบันทึกใน Slice 1 มีเพีย�
 
 ทั้งสองกรณีต้องสร้าง Audit Record ด้วย outcome `DENIED`
 
+### Freshness Policy
+
+metadata ที่มาจาก GitHub ถูกจัดระดับตาม `last_verified_at` เทียบกับเวลาปัจจุบัน
+
+| ระดับ | ช่วงเวลา | การแสดงผล |
+|---|---|---|
+| `FRESH` | น้อยกว่า 1 ชั่วโมง | แสดงค่าตามปกติพร้อม timestamp |
+| `AGING` | 1 ชั่วโมง ถึงน้อยกว่า 24 ชั่วโมง | แสดงค่าพร้อม timestamp และ indicator ว่าอาจไม่ใช่ปัจจุบัน |
+| `STALE` | ตั้งแต่ 24 ชั่วโมงขึ้นไป | แสดงค่าพร้อม timestamp และ indicator ระดับ warning พร้อมปุ่ม refresh ที่เข้าถึงได้ |
+
+Slice 1 ไม่มี webhook และไม่มี scheduled reconciliation ข้อมูลจึงเข้าสู่ `STALE` เป็นเรื่องปกติ ไม่ใช่ความผิดพลาด UI ต้องสื่อสารว่าเป็นข้อมูล ณ เวลาที่ตรวจล่าสุด ไม่ใช่สถานะปัจจุบันของ GitHub
+
+ค่าขีดแบ่งทั้งสองต้องเป็น configuration ที่อ่านจากที่เดียว และต้องบันทึกค่าที่ใช้จริงในเอกสาร operational limitations ตาม AC-36
+
+### Pagination Contract
+
+endpoint ที่คืน collection ต้องรองรับ cursor-based pagination
+
+| Parameter | ชนิด | ค่าเริ่มต้น | ข้อจำกัด |
+|---|---|---|---|
+| `limit` | integer | 25 | 1 ถึง 100 นอกช่วงนี้คืน `PAGINATION_INVALID` |
+| `cursor` | opaque string | ไม่มี | ค่าที่ระบบออกให้เท่านั้น ค่าที่ไม่ถูกต้องคืน `PAGINATION_INVALID` |
+
+response ต้องมี `nextCursor` ที่เป็น `null` เมื่อไม่มีหน้าถัดไป
+
+**ห้ามใช้ offset-based pagination** เพราะ record ที่ถูกเพิ่มระหว่างการเลื่อนหน้าจะทำให้ข้อมูลข้ามหรือซ้ำ
+
+`cursor` ต้องไม่เปิดเผย internal identifier หรือโครงสร้าง database
+
 ## 4. Functional Acceptance Criteria
 
 ### AC-01 Protected Access
 
 Given ผู้ใช้ยังไม่ยืนยันตัวตน
 When เปิด Project Registry หรือเรียก protected API
-Then ระบบไม่คืน project data และนำเข้าสู่ authentication flow หรือคืนมาตรฐาน unauthorized response
+Then ระบบไม่คืน project data ในทุกกรณี และตอบตามชนิดของ request
+
+| Request | พฤติกรรม |
+|---|---|
+| การเปิดหน้าใน browser | redirect `302` ไปยัง authentication flow |
+| การเรียก API | `401` พร้อม error code `UNAUTHENTICATED` ตาม `docs/ERROR_CODES.md` |
+
+response ทั้งสองแบบต้องไม่มี project data, organization name หรือข้อมูลใดที่บ่งชี้ว่ามี resource อยู่จริง
 
 ### AC-02 Human Identity Boundary
 
-Given request มาจาก AI session, service account หรือ client payload ที่อ้าง role เอง
-When เรียก action สงวนสำหรับ Product Owner
-Then server ปฏิเสธตาม authenticated identity/policy โดยไม่เชื่อ role จาก client
+AI Session Registry เป็นของ Slice 3 จึงยังสร้าง session ของ AI มาทดสอบใน Slice 1 ไม่ได้ ข้อนี้จำกัดเฉพาะกรณีที่สร้างได้จริง
+
+Given request ที่ผู้เรียกพยายามยกระดับสิทธิ์ตนเอง
+When เรียก action ที่สงวนไว้
+Then server ประเมินสิทธิ์จาก `role_assignments` ฝั่ง server เท่านั้น และปฏิเสธตาม Denied Response Policy หัวข้อ 3.1
+
+ต้องมี test ครอบคลุมอย่างน้อย:
+
+| Vector | สิ่งที่ต้องเกิด |
+|---|---|
+| payload มี field `role`, `isProductOwner` หรือชื่อคล้ายกัน | field ถูกเพิกเฉยทั้งหมด ไม่มีผลต่อการตัดสินสิทธิ์ |
+| header ที่อ้าง role หรือ actor type | ถูกเพิกเฉย |
+| `organization_id` ใน payload ต่างจาก organization ของ session | ปฏิเสธ ไม่ใช้ค่าจาก payload |
+| user ที่ไม่มี role Product Owner เรียก action ที่สงวนไว้ | ปฏิเสธพร้อม Audit Record outcome `DENIED` |
+
+การทดสอบด้วย AI session และ service account จริงเป็นของ Slice 3 และต้องบันทึกเป็น backlog item ที่ผูกกับ Slice นั้น
 
 ### AC-03 Authorized Read
 
@@ -158,13 +207,26 @@ Then ระบบคืนผลเดิมตาม Idempotency Replay Policy 
 
 Given idempotency key เดิมถูกใช้กับ payload ต่างกัน
 When submit
-Thenระบบปฏิเสธด้วย conflict/validation response และไม่ mutate project state
+Then ระบบปฏิเสธด้วย `409` และ error code `IDEMPOTENCY_KEY_REUSED` และไม่ mutate project state
+
+การเปรียบเทียบ payload ใช้ `request_digest` ที่บันทึกไว้กับ key นั้น ไม่ใช่การเปรียบเทียบ field ทีละตัว
 
 ### AC-11 Repository Unavailable
 
-Given GitHub คืน not found, access denied, suspended installation, timeout หรือ rate limit
+Given GitHub คืนเงื่อนไขความล้มเหลวอย่างใดอย่างหนึ่ง
 When preview/register/refresh
-Thenระบบไม่สร้าง project ที่ดู valid, แสดงข้อความที่แยกประเภทได้ และไม่เปิดเผย token/secret
+Then ระบบไม่สร้าง project ที่ดู valid และคืน error code ที่แยกเงื่อนไขได้หนึ่งต่อหนึ่งตาม `docs/ERROR_CODES.md`
+
+| เงื่อนไขจาก GitHub | Error code |
+|---|---|
+| not found | `GITHUB_REPOSITORY_NOT_FOUND` |
+| access denied | `GITHUB_ACCESS_DENIED` |
+| suspended installation | `GITHUB_INSTALLATION_SUSPENDED` |
+| timeout | `GITHUB_TIMEOUT` |
+| rate limit | `GITHUB_RATE_LIMITED` |
+| response ไม่ผ่าน schema | `GITHUB_CONTRACT_MISMATCH` |
+
+ต้องมี test หนึ่งกรณีต่อหนึ่ง code และ assert ว่า response ไม่มี token, secret หรือ authorization header
 
 ### AC-12 Project Registry List
 
@@ -182,7 +244,19 @@ UI ใช้ visual direction และ status semantics จาก `docs/UX_FLOW
 
 ### AC-13 Project Detail
 
-Project detail ต้องแสดง source metadata, verification freshness, access status, activity timeline และ identifier ที่ใช้ตรวจสอบได้ โดยไม่แสดง credential
+Project detail ต้องแสดงอย่างน้อย:
+
+- project name
+- repository `owner/name`
+- **external repository ID** — identifier ที่ใช้ยืนยันว่าผูกกับ repository ใดบน GitHub และไม่เปลี่ยนแม้ repository ถูกเปลี่ยนชื่อ
+- visibility
+- default branch
+- access status
+- `last_verified_at` พร้อมระดับ freshness ตาม Freshness Policy หัวข้อ 3.1
+- activity timeline ของ project นั้น
+- ลิงก์ไปยัง repository บน GitHub ที่ผ่าน URL validation ตาม AC-41
+
+ต้องมี test ที่ assert ว่าไม่มี token, secret, authorization header หรือ installation credential ปรากฏในหน้านี้ ตาม AC-34
 
 ### AC-14 Refresh Verification
 
@@ -229,7 +303,14 @@ Thenระบบปฏิเสธด้วย conflict response แทนกา
 
 ### AC-16 Explicit Status Freshness
 
-ทุก metadata ที่มาจาก GitHub ต้องแสดงหรือเข้าถึง `last verified/synced at` ได้ ห้ามแสดง cached state เหมือนเป็น real-time โดยไม่มี timestamp
+ทุกหน้าที่แสดง metadata จาก GitHub ต้องแสดง `last_verified_at` เป็นข้อความที่มองเห็นได้โดยไม่ต้อง hover ไม่ต้องคลิก และไม่ต้องเปิดหน้าอื่น
+
+- ใช้กับทั้ง Project Registry list และ Project detail
+- ต้องแสดงระดับ freshness ตาม Freshness Policy หัวข้อ 3.1 ควบคู่กับ timestamp
+- ห้ามแสดง cached state ในลักษณะที่ทำให้เข้าใจว่าเป็นสถานะปัจจุบันของ GitHub
+- ต้องมี test ที่ assert ว่า element ของ timestamp มีอยู่และมองเห็นได้ในทั้งสองหน้า
+
+Slice 1 ไม่มี webhook และไม่มี scheduled reconciliation ข้อมูลทั้งหมดจึงเป็น snapshot ณ เวลาที่ตรวจล่าสุดเสมอ
 
 ## 5. Audit and Security Acceptance Criteria
 
@@ -345,7 +426,12 @@ Project Registry ต้องใช้ design token ที่ประกาศ�
 
 ### AC-24 Low-input Add Flow
 
-ผู้ใช้ต้องเพิ่ม project ด้วยการเลือกเป็นหลัก ไม่บังคับกรอก metadata ที่ GitHub มีอยู่แล้ว
+ข้อบังคับเรื่องการไม่กรอก metadata ที่ GitHub มีอยู่แล้วอยู่ใน AC-05 ข้อนี้กำหนดต้นทุนของ flow ซึ่งเป็นคนละเรื่อง
+
+- จากหน้า Project Registry ถึงการลงทะเบียนสำเร็จ ต้องใช้ไม่เกิน **4 การกระทำของผู้ใช้** — เปิด Add Project, เลือก installation, เลือก repository, ยืนยัน
+- หาก organization มี installation เดียว ต้องข้ามขั้นเลือก installation ให้อัตโนมัติ เหลือไม่เกิน 3
+- flow ทั้งหมดต้องทำสำเร็จได้ด้วย keyboard อย่างเดียว โดยไม่ใช้เมาส์
+- ต้องมี E2E test ที่นับจำนวนการกระทำและ assert ตามข้างต้น
 
 ### AC-25 Responsive
 
@@ -365,25 +451,35 @@ Flow หลักต้องใช้งานได้ครบทั้งส
 
 ### AC-26 Accessibility
 
-- keyboard navigation
-- visible focus
-- semantic labels
-- touch target อย่างน้อย 44px สำหรับ primary controls
-- error/status มีข้อความและ icon
-- target WCAG AA contrast
+ข้อกำหนดด้าน contrast อยู่ใน AC-23 ซึ่งบังคับค่าที่วัดแล้ว ข้อนี้ครอบคลุมส่วนที่เหลือและทุกข้อเป็นข้อบังคับ ไม่ใช่เป้าหมาย
+
+- ทุก interactive element เข้าถึงและเรียกใช้ได้ด้วย keyboard โดยไม่มี keyboard trap
+- focus ring มองเห็นได้บนทุกพื้นหลังที่ใช้จริง และมี contrast ไม่ต่ำกว่า 3:1 กับพื้นที่อยู่ติดกัน
+- ทุก control มี accessible name ที่สื่อความหมาย ไม่ใช่ชื่อทั่วไปเช่น `button`
+- touch target ของ primary control ไม่เล็กกว่า 44 × 44 CSS pixel
+- error และ status ทุกตัวมีทั้งข้อความและ icon ไม่พึ่งสีอย่างเดียว
+- การเปลี่ยนแปลงสถานะที่สำคัญต้องประกาศผ่าน live region ให้ screen reader รับรู้
+- ต้องรัน automated accessibility check บนทุกหน้าหลักและ assert ว่าไม่มี violation ระดับ serious หรือ critical
 
 ### AC-27 Loading, Empty, Error
 
-ต้องมี states สำหรับ:
+ต้องมี state ที่แยกจากกันได้และ assert ได้จาก UI จริง
 
-- no projects
-- loading repositories
-- verifying repository
-- permission denied
-- repository unavailable
-- rate limited
-- stale data
-- optimistic concurrency conflict
+| State | trigger ที่ใช้ทดสอบ |
+|---|---|
+| no projects | organization ที่ยังไม่มี project |
+| loading repositories | GitHub mock ที่หน่วง response |
+| verifying repository | ระหว่างรอผล preview |
+| permission denied | user ที่ไม่มี project management permission |
+| repository unavailable | `GITHUB_REPOSITORY_NOT_FOUND` หรือ `GITHUB_ACCESS_DENIED` |
+| rate limited | `GITHUB_RATE_LIMITED` |
+| aging data | `last_verified_at` อยู่ในช่วง `AGING` ตาม Freshness Policy หัวข้อ 3.1 |
+| stale data | `last_verified_at` อยู่ในช่วง `STALE` ตาม Freshness Policy หัวข้อ 3.1 |
+| optimistic concurrency conflict | `VERSION_CONFLICT` |
+
+`aging` และ `stale` ต้องแยกจากกันได้ในการแสดงผล ไม่ใช่ state เดียวกัน
+
+ทุก state ต้องมีข้อความและ icon ไม่พึ่งสีอย่างเดียว และ state ที่เกิดจาก error ต้องแสดง correlation reference ตาม AC-21
 
 ## 7. Technical and Test Acceptance Criteria
 
@@ -409,7 +505,13 @@ Project mutation, Activity Event, Audit Record และ Outbox Event (ถ้า
 
 ### AC-30 Contract Validation
 
-API validate identifiers, strings, enum, pagination และ idempotency header อย่างชัดเจน พร้อม stable error codes
+API ต้อง validate identifier, string length, enum, pagination parameter และ idempotency header ที่ boundary ก่อนเข้าสู่ domain logic
+
+- error code ทั้งหมดต้องมาจาก `docs/ERROR_CODES.md` เท่านั้น
+- ต้องมี test ที่ยืนยันว่า API ไม่คืน code ที่ไม่อยู่ใน catalogue
+- pagination ต้องเป็นไปตาม Pagination Contract หัวข้อ 3.1 และ parameter นอกช่วงต้องคืน `PAGINATION_INVALID`
+- endpoint ที่บังคับ idempotency key ต้องคืน `IDEMPOTENCY_KEY_REQUIRED` เมื่อไม่ได้ส่งมา
+- payload ที่ไม่ผ่าน schema ต้องคืน `VALIDATION_FAILED` โดยไม่เปิดเผยโครงสร้างภายในหรือค่าที่ผู้เรียกไม่มีสิทธิ์เห็น
 
 ### AC-31 Domain Tests
 
@@ -432,7 +534,11 @@ API validate identifiers, strings, enum, pagination และ idempotency header
 - unavailable/rate-limited GitHub
 - transaction rollback
 
-External GitHub calls ต้อง mock/fake อย่าง deterministic ใน automated tests และมี contract strategy ที่ระบุไว้
+External GitHub calls ต้อง mock/fake อย่าง deterministic ใน automated test และต้องทำตาม `docs/GITHUB_CONTRACT_STRATEGY.md` ทั้งสามชั้น:
+
+1. response จาก GitHub ผ่าน schema validation ตอน runtime และ response ที่ไม่ผ่านคืน `GITHUB_CONTRACT_MISMATCH`
+2. fixture ที่ใช้ mock สร้างจาก response จริง ผ่าน schema เดียวกัน และ redact แล้ว
+3. contract verification ที่เรียก GitHub จริง รันแยกจาก test suite ปกติ อย่างน้อยหนึ่งครั้งก่อนส่ง `READY FOR FINAL REVIEW` พร้อมรายงานผลจริงและ endpoint ที่ยังไม่มี fixture จากของจริง
 
 ### AC-33 UI E2E
 
@@ -443,7 +549,8 @@ External GitHub calls ต้อง mock/fake อย่าง deterministic ใ�
 - read-only user cannot add
 - GitHub access denied
 - stale version conflict
-- responsive critical flow อย่างน้อยหนึ่ง viewport ขนาดเล็ก
+- responsive critical flow บน viewport `mobile` 375 × 812 ตามที่ประกาศใน `docs/UX_FLOWS.md` §3
+- untrusted GitHub content ตาม AC-41 โดยใช้ repository name และ description ที่มี payload อันตราย
 
 ### AC-34 Credential Redaction Tests
 
@@ -468,9 +575,9 @@ PR ต้องอัปเดต:
 - API contract
 - database migration/schema
 - permission matrix
-- local setup
+- local setup รวมคำสั่งรัน contract verification ตาม `docs/GITHUB_CONTRACT_STRATEGY.md` ชั้นที่ 3
 - test commands
-- operational limitations
+- operational limitations รวมค่า freshness threshold, rate limit และอายุ installation token ที่ใช้จริง
 - secret configuration without secret values
 
 ### AC-37 READY FOR FINAL REVIEW Evidence
