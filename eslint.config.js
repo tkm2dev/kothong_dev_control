@@ -8,7 +8,19 @@ export default tseslint.config(
   {
     rules: {
       'no-console': 'error',
-      eqeqeq: ['error', 'always'],
+      // `x != null` is the one comparison worth keeping loose: it means "neither
+      // null nor undefined", which is exactly what GitHub's nullable fields need.
+      eqeqeq: ['error', 'always', { null: 'ignore' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          // Destructuring with a rest element is how a field is dropped from an
+          // object; the named sibling is never meant to be read.
+          ignoreRestSiblings: true,
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+        },
+      ],
     },
   },
 );
