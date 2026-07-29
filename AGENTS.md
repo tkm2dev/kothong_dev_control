@@ -120,12 +120,20 @@ Foundation Merge **ไม่ได้** ปลดล็อกการเขี�
 
 Implementation ของ Slice 1 เริ่มได้เมื่อครบทุกข้อต่อไปนี้ และแต่ละข้อต้องมีหลักฐานบน `main`:
 
-1. ADR เลือก implementation technology stack — merged และสถานะ `Accepted`
-2. ADR เลือก authentication provider — merged และสถานะ `Accepted`
-3. Secret management approach ที่ระบุแล้วว่าใช้ secret manager ใดหรือ envelope encryption แบบใด — merged
-4. Slice 1 Acceptance Criteria ไม่มีข้อที่เขียน test ไม่ได้เหลืออยู่
+1. ADR เลือก implementation technology stack — `docs/adr/0003-technology-stack.md` merged และสถานะ `Accepted`
+2. ADR เลือก authentication provider — `docs/adr/0004-authentication-provider.md` merged และสถานะ `Accepted`
+3. Secret management approach — `docs/adr/0005-secret-management.md` merged และสถานะ `Accepted`
+4. Slice 1 Acceptance Criteria ไม่มีข้อที่เขียน test ไม่ได้เหลืออยู่ — ณ ปัจจุบันเหลือ AC-05, AC-14, AC-23 และ AC-25
 5. Product Owner กำหนด Implementation Owner และอนุมัติ Active Lane
 
 ห้ามเริ่มเขียน application code ของ Slice 1 ก่อนครบทั้ง 5 ข้อ แม้ Foundation Pack จะ merge แล้วก็ตาม
 
 ADR ที่ยังมีสถานะ `Proposed` ไม่นับว่าตัดสินแล้ว
+
+### ADR Status Lifecycle
+
+- `Proposed` — เสนอแล้วแต่ยังไม่ผ่านการอนุมัติ อ้างอิงเป็นข้อผูกพันไม่ได้
+- `Accepted` — merge เข้า `main` แล้วพร้อม Product Owner approval ที่ผูกกับ exact head SHA ต้องบันทึกวันที่ SHA ที่อนุมัติ และ merge commit ไว้ในหัวเอกสาร
+- `Superseded` — ถูกแทนที่ด้วย ADR ใหม่ ต้องอ้างเลข ADR ที่มาแทน และห้ามลบเนื้อหาเดิม
+
+การเปลี่ยนสถานะเป็น `Accepted` ต้องเกิดใน Pull Request ไม่ใช่แก้ตรงบน `main` และต้องอ้างหลักฐาน approval ที่ตรวจสอบย้อนกลับได้

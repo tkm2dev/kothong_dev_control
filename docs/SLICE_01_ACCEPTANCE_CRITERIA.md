@@ -10,7 +10,7 @@
 - organization/project authorization boundary
 - GitHub App installation — minimal read-only connection สำหรับ metadata lookup
 - server-side GitHub API access และ credential handling ของ installation
-- GitHub installation/repository selection or verified `owner/name` fallback
+- GitHub installation and repository selection จากรายการที่ server ดึงมา
 - server-side repository metadata lookup
 - Project Registry list/detail/add flow
 - idempotent create command
@@ -28,6 +28,7 @@
 - scheduled reconciliation และ drift detection
 - branch/PR/check projections และ sync health UI
 - write operation ใดๆ ไปยัง GitHub
+- fallback แบบกรอก `owner/name` เอง
 - Task Board, Active Lanes, AI Sessions, Conflicts
 - Review Queue and Approval Center
 - Merge or Deploy endpoint/UI
@@ -117,9 +118,15 @@ Then server คืน response ตาม Denied Response Policy ในหัว�
 
 Given Product Owner มี GitHub installation ที่ระบบเข้าถึงได้
 When เปิด Add Project
-Then UI ให้เลือก repository จากรายการที่ server ดึงจาก GitHub ลดการกรอกข้อมูลเอง
+Then UI แสดงรายการ repository ที่ server ดึงจาก GitHub ให้เลือก
 
-Fallback แบบกรอก `owner/name` ทำได้เมื่อ provider flow รองรับและยังต้องตรวจ server-side
+ข้อบังคับที่ทดสอบได้:
+
+1. หน้า Add Project ต้อง**ไม่มี** input field ที่บังคับกรอกสำหรับ `owner`, `name`, `visibility`, `default_branch` หรือข้อมูลใดที่ดึงจาก GitHub ได้ — assert จากจำนวน required field ที่ต้องเป็น 0 สำหรับกลุ่มนี้
+2. การลงทะเบียนสำเร็จต้องทำได้ด้วยการเลือกและกดยืนยันเท่านั้น โดยไม่พิมพ์ข้อความใดเลย
+3. **Fallback แบบกรอก `owner/name` อยู่นอก scope ของ Slice 1** — ไม่ต้อง implement และห้ามมีใน UI เพื่อไม่ให้มีเส้นทางที่ข้ามการเลือกจาก installation
+
+หาก installation ไม่มี repository ที่เข้าถึงได้ ต้องแสดง empty state ที่บอก next action ไม่ใช่เปิดช่องให้กรอกเอง
 
 ### AC-06 Server-side Verification
 
@@ -180,8 +187,39 @@ Project detail ต้องแสดง source metadata, verification freshness,
 ### AC-14 Refresh Verification
 
 Given registered project
-When authorized userกด refresh
-Then server re-fetch GitHub metadata, update allowed fields ด้วย optimistic concurrency และบันทึก success/failure activity/audit
+When authorized user กด refresh
+Then server re-fetch GitHub metadata, update เฉพาะ field ที่ระบุด้านล่างด้วย optimistic concurrency และบันทึก activity/audit ตาม policy หัวข้อ 3.1
+
+### Refreshable fields
+
+field ที่ refresh เขียนทับได้:
+
+| Field | หมายเหตุ |
+|---|---|
+| `owner_login` | เปลี่ยนได้เมื่อ repository ถูกโอนหรือ owner เปลี่ยนชื่อ |
+| `repository_name` | เปลี่ยนได้เมื่อ repository ถูกเปลี่ยนชื่อ |
+| `visibility` | |
+| `default_branch` | |
+| `access_status` | |
+| `last_verified_at` | อัปเดตทุกครั้งที่ refresh สำเร็จ |
+
+field ที่ refresh **ห้าม**เขียนทับ: `id`, `organization_id`, `project_id`, `installation_id`, `external_repository_id`
+
+`external_repository_id` เป็น identity ของ binding หาก GitHub คืน external repository ID ที่ไม่ตรงกับที่บันทึกไว้ ต้องถือว่า binding ไม่ถูกต้อง ห้าม update ใดๆ และต้องบันทึก audit record พร้อม outcome `CONFLICT`
+
+### Access และ visibility regression
+
+Given registered project ที่เคยเข้าถึงได้
+When refresh แล้วพบว่า repository เปลี่ยนเป็น private ที่ installation เข้าถึงไม่ได้ ถูกลบ ถูกโอนออกจาก installation หรือ installation ถูกเพิกถอน
+Then ระบบต้อง:
+
+1. อัปเดต `access_status` เป็นค่าที่สื่อว่าเข้าถึงไม่ได้ ห้ามคง status เดิมไว้
+2. **ห้ามลบ project หรือ binding อัตโนมัติ** เพราะ audit trail ต้องคงอยู่
+3. แสดงสถานะเข้าถึงไม่ได้พร้อม `last_verified_at` ใน list และ detail
+4. สร้าง Activity Event และ Audit Record ของ `PROJECT_REFRESH` ด้วย outcome ที่แยกจากความล้มเหลวชั่วคราวเช่น timeout หรือ rate limit ได้
+5. คง metadata ที่ verify ไว้ครั้งสุดท้ายไว้เป็นค่าที่แสดง โดยกำกับชัดว่าเป็นข้อมูลเก่า
+
+ต้องมี test แยกกรณี access regression ออกจากกรณี GitHub error ชั่วคราว
 
 ### AC-15 Optimistic Concurrency
 
@@ -233,7 +271,14 @@ Slice 1 มี GitHub App installation และ server-side GitHub API access �
 
 ### AC-21 Correlation
 
-API response/error ที่เหมาะสมต้องมี correlation reference ที่เชื่อมกับ Activity/Audit ได้โดยไม่เปิด internal secret
+ทุก HTTP response ของ API ต้องมี header `X-Correlation-Id` ไม่ว่า outcome จะเป็นอะไร
+
+- ค่าใน header ต้องตรงกับ `correlation_id` ของ Activity Event และ Audit Record ที่ request นั้นสร้าง
+- request ที่ client ส่ง `X-Correlation-Id` มาเอง ให้ใช้ค่านั้นต่อได้หลัง validate รูปแบบแล้ว มิฉะนั้นให้สร้างใหม่
+- correlation reference ต้องไม่มี internal identifier ที่เปิดเผยโครงสร้างภายในหรือ secret
+- error response ที่แสดงต่อผู้ใช้ต้องแสดง correlation reference ที่ copy ได้ เพื่อให้อ้างอิงกับ Activity Log ได้
+
+ต้องมี test ที่เรียก API แล้ว assert ว่า header มีอยู่จริง และค่าตรงกับ record ที่ persist
 
 ### AC-22 Server-side Authorization Tests
 
@@ -288,16 +333,15 @@ Slice 1 แสดง repository name, owner login และ description ที�
 
 ### AC-23 Visual Baseline
 
-Project Registry ต้องใช้:
+Project Registry ต้องใช้ design token ที่ประกาศไว้ใน `docs/UX_FLOWS.md` §2 ตามค่าที่ระบุ ห้าม hardcode ค่าสีนอก token
 
-- warm cream canvas
-- dark brown/olive sidebar
-- amber primary action
-- muted green healthy status
-- brick red blocking/error status
-- rounded light cards และ readable spacing
+ทิศทางที่ต้องคงไว้: warm cream canvas, dark brown/olive sidebar, amber primary action, muted green healthy status, brick red blocking status, rounded light cards และ readable spacing
 
-ต้องผ่าน contrast review และไม่พึ่งสีเพียงอย่างเดียว
+ต้องมี automated test ที่:
+
+1. คำนวณ contrast ratio ของทุกคู่สีในตาราง `docs/UX_FLOWS.md` §2 แล้ว assert ว่าค่าไม่ต่ำกว่าเกณฑ์ที่ระบุในตารางนั้น — test ต้อง fail เมื่อมีคนแก้ค่า token โดยไม่วัดใหม่
+2. assert ว่าไม่มีการใช้ `--color-accent` เป็น `color` property ของข้อความหรือไอคอนบนพื้นสว่าง
+3. assert ว่าทุก status indicator มีทั้ง icon และ text label ไม่ใช่สีอย่างเดียว
 
 ### AC-24 Low-input Add Flow
 
@@ -305,7 +349,19 @@ Project Registry ต้องใช้:
 
 ### AC-25 Responsive
 
-Flow หลักใช้งานได้บน desktop/tablet/mobile ตาม layout rules ใน UX document โดยไม่มี action สำคัญหายไป
+Flow หลักต้องใช้งานได้ครบทั้งสาม breakpoint ที่ประกาศใน `docs/UX_FLOWS.md` §3
+
+ต้องทดสอบบน viewport เหล่านี้:
+
+| Breakpoint | Viewport |
+|---|---|
+| `mobile` | 375 × 812 |
+| `tablet` | 834 × 1112 |
+| `desktop` | 1440 × 900 |
+
+ในทุก viewport ต้อง assert ว่า critical actions ทั้ง 7 รายการที่ระบุใน `docs/UX_FLOWS.md` §3 เข้าถึงได้ โดยนับว่าเข้าถึงได้เมื่อ element มี accessible name และเรียกใช้ด้วย keyboard ได้ การอยู่ใน overflow menu ถือว่าผ่านหากเปิดด้วย keyboard ได้
+
+ต้อง assert ว่าไม่มี horizontal scroll ที่ระดับ document ในทุก viewport
 
 ### AC-26 Accessibility
 

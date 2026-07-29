@@ -153,9 +153,9 @@ Candidate capabilities after operational evidence:
 | protect `main` from direct push and force-push | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
 | require PR before merge | BLOCKED — ดู "ข้อจำกัดการบังคับใช้" ด้านล่าง |
 | define protected status checks when CI exists | BLOCKED — ต้องมี branch protection ก่อน |
-| establish secret management approach | OPEN |
-| select authentication provider | OPEN |
-| select implementation technology stack | OPEN |
+| establish secret management approach | ตัดสินใน ADR 0005 — `Accepted` เมื่อ merge พร้อม PO approval |
+| select authentication provider | ตัดสินใน ADR 0004 — `Accepted` เมื่อ merge พร้อม PO approval |
+| select implementation technology stack | ตัดสินใน ADR 0003 — `Accepted` เมื่อ merge พร้อม PO approval |
 
 Repository setting changes require Product Owner approval and are not part of the current documentation write unless explicitly ordered
 

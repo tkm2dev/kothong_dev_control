@@ -1,7 +1,8 @@
 # ADR 0001: Start with a Modular Monolith
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-29
+- Accepted: 2026-07-29 โดย Product Owner approval ที่ head SHA `7d85fdefb23611957e9c7b279536bc50d30323d6` merged เป็น `e096d1ff5f344f06c90dc8e93aa76b88782eed3f` ผ่าน Pull Request #1
 
 ## Context
 
