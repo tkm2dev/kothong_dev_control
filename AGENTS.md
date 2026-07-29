@@ -133,7 +133,13 @@ ADR ที่ยังมีสถานะ `Proposed` ไม่นับว่�
 ### ADR Status Lifecycle
 
 - `Proposed` — เสนอแล้วแต่ยังไม่ผ่านการอนุมัติ อ้างอิงเป็นข้อผูกพันไม่ได้
-- `Accepted` — merge เข้า `main` แล้วพร้อม Product Owner approval ที่ผูกกับ exact head SHA ต้องบันทึกวันที่ SHA ที่อนุมัติ และ merge commit ไว้ในหัวเอกสาร
+- `Accepted` — ได้รับ Product Owner approval และ merge เข้า `main` แล้ว ต้องบันทึก **วันที่และหมายเลข Pull Request** ไว้ในหัวเอกสาร
 - `Superseded` — ถูกแทนที่ด้วย ADR ใหม่ ต้องอ้างเลข ADR ที่มาแทน และห้ามลบเนื้อหาเดิม
 
-การเปลี่ยนสถานะเป็น `Accepted` ต้องเกิดใน Pull Request ไม่ใช่แก้ตรงบน `main` และต้องอ้างหลักฐาน approval ที่ตรวจสอบย้อนกลับได้
+**หัว ADR ต้องไม่บันทึก approved head SHA หรือ merge commit เป็นข้อบังคับ** เพราะทั้งสองค่ารู้ได้หลังจากเขียนคอมมิตที่บรรจุข้อความนั้นไปแล้ว การบังคับให้บันทึกทำให้ ADR เป็น `Accepted` ในคอมมิตที่ถูกอนุมัติไม่ได้เลย และต้องมี Pull Request ตามทุกครั้งไม่รู้จบ
+
+หลักฐานการอนุมัติที่ผูกกับ exact SHA อยู่ใน approval record บน Pull Request ซึ่งเป็นที่ที่ถูกต้องตาม `docs/DOMAIN_MODEL.md` §1 ที่ระบุว่า approval เป็น decision record ที่ผูกกับ exact target ไม่ใช่ field บนเอกสารอื่น หัว ADR จึงอ้างถึงหลักฐานนั้น ไม่ทำสำเนา
+
+บันทึก approved head SHA เพิ่มเติมได้หากทราบและต้องการความสะดวกในการตรวจ แต่ไม่ใช่เงื่อนไขของสถานะ
+
+การเปลี่ยนสถานะเป็น `Accepted` ต้องเกิดใน Pull Request ไม่ใช่แก้ตรงบน `main`
