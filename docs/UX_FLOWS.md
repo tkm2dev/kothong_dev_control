@@ -13,26 +13,38 @@ KOTHONG DEV CONTROL ใช้แนวทาง **Warm Operational Console** ต
 - typography ชัด อ่านง่าย ไม่ใช้ข้อมูลหนาแน่นแบบ monitoring dashboard
 - interaction เน้นกดเลือกและตัดสินใจ ลดการกรอกข้อความยาว
 
-## 2. Design Tokens — Proposed
+## 2. Design Tokens
 
-ค่าด้านล่างเป็น baseline สำหรับ implementation และต้องทดสอบ contrast ก่อนล็อก production palette
+ค่าด้านล่างผ่านการวัด contrast แล้วและเป็น production baseline ทิศทาง Warm Operational Console คงเดิม สิ่งที่เปลี่ยนคือแยก token สำหรับ **พื้น** ออกจาก token สำหรับ **ข้อความและไอคอน** เพราะสีอำพันที่สวยเมื่อใช้เป็นพื้นปุ่ม จะอ่านไม่ออกเมื่อเอาไปเป็นตัวอักษรบนพื้นครีม
 
 ```css
 :root {
+  /* พื้นหลัง */
   --color-bg-canvas: #F5F0E6;
   --color-bg-surface: #FFFDF8;
   --color-bg-sidebar: #292A20;
   --color-bg-sidebar-hover: #3A392B;
+
+  /* ข้อความ */
   --color-text-primary: #2E2B24;
-  --color-text-secondary: #756F63;
+  --color-text-secondary: #736D62;
   --color-text-on-dark: #F8F3E8;
-  --color-border: #DDD5C8;
-  --color-accent: #D79A1E;
-  --color-accent-hover: #BD8212;
-  --color-success: #718268;
-  --color-warning: #C58A2B;
-  --color-danger: #A84E3F;
-  --color-info: #6D7F85;
+
+  /* เส้นขอบ */
+  --color-border: #DDD5C8;        /* ตกแต่งเท่านั้น ห้ามใช้เป็นขอบเขตเดียวที่สื่อความหมาย */
+  --color-border-strong: #9E8863; /* form control, ขอบเขตที่สื่อความหมาย */
+  --color-focus: #2E2B24;         /* focus ring */
+
+  /* พื้นสำหรับ action */
+  --color-accent: #D79A1E;        /* พื้นปุ่มหลัก ใช้คู่กับ --color-text-primary เท่านั้น */
+  --color-accent-hover: #E0A62E;  /* hover สว่างขึ้น ไม่เข้มลง เพื่อให้ข้อความเข้มยังอ่านออก */
+
+  /* ข้อความและไอคอนบนพื้นสว่าง */
+  --color-accent-text: #8F6614;
+  --color-success-text: #64725C;
+  --color-warning-text: #916520;
+  --color-danger-text: #A84E3F;
+  --color-info-text: #617076;
 
   --radius-sm: 8px;
   --radius-md: 14px;
@@ -41,6 +53,33 @@ KOTHONG DEV CONTROL ใช้แนวทาง **Warm Operational Console** ต
   --space-page: clamp(16px, 3vw, 40px);
 }
 ```
+
+### Contrast ที่วัดได้
+
+| การใช้งาน | คู่สี | อัตราส่วน | เกณฑ์ |
+|---|---|---|---|
+| ข้อความหลักบน canvas | `text-primary` / `bg-canvas` | 12.43:1 | AA normal ผ่าน |
+| ข้อความรองบน canvas | `text-secondary` / `bg-canvas` | 4.52:1 | AA normal ผ่าน |
+| ข้อความบน sidebar | `text-on-dark` / `bg-sidebar` | 13.12:1 | AA normal ผ่าน |
+| ข้อความบนปุ่มหลัก | `text-primary` / `accent` | 5.74:1 | AA normal ผ่าน |
+| ข้อความบนปุ่มหลักตอน hover | `text-primary` / `accent-hover` | 6.50:1 | AA normal ผ่าน |
+| ข้อความ/ไอคอน amber บน canvas | `accent-text` / `bg-canvas` | 4.53:1 | AA normal ผ่าน |
+| ข้อความ/ไอคอน success บน canvas | `success-text` / `bg-canvas` | 4.51:1 | AA normal ผ่าน |
+| ข้อความ/ไอคอน warning บน canvas | `warning-text` / `bg-canvas` | 4.52:1 | AA normal ผ่าน |
+| ข้อความ/ไอคอน danger บน canvas | `danger-text` / `bg-canvas` | 4.83:1 | AA normal ผ่าน |
+| ข้อความ/ไอคอน info บน canvas | `info-text` / `bg-canvas` | 4.52:1 | AA normal ผ่าน |
+| ขอบเขตที่สื่อความหมาย | `border-strong` / `bg-canvas` | 3.00:1 | 1.4.11 ผ่าน |
+| focus ring | `focus` / `bg-canvas` | 12.43:1 | 1.4.11 ผ่าน |
+
+ทุกคู่วัดบน `--color-bg-canvas` ซึ่งเป็นพื้นที่สว่างน้อยกว่า `--color-bg-surface` ค่าบน surface จึงสูงกว่านี้ทุกคู่
+
+### กฎการใช้ token สี
+
+1. **ห้ามใช้ `--color-accent` เป็นสีข้อความหรือไอคอนบนพื้นสว่าง** ให้ใช้ `--color-accent-text` — `--color-accent` มี contrast 2.17:1 บน canvas ซึ่งไม่ผ่านแม้เกณฑ์ non-text
+2. status indicator ทุกชนิด รวมถึงจุดสีและไอคอน ต้องใช้ token ตระกูล `-text` เพราะผ่านทั้งเกณฑ์ 4.5:1 และ 3:1
+3. `--color-border` ใช้ได้เฉพาะเส้นแบ่งเชิงตกแต่ง เมื่อเส้นขอบเป็นสิ่งเดียวที่สื่อขอบเขตของ control ต้องใช้ `--color-border-strong`
+4. hover ของปุ่มหลักสว่างขึ้น ไม่เข้มลง เพราะการทำให้เข้มลงจะดัน contrast กับข้อความเข้มให้ต่ำกว่า 4.5:1
+5. ค่าใดที่เปลี่ยนภายหลังต้องวัด contrast ใหม่และอัปเดตตารางด้านบนในคอมมิตเดียวกัน
 
 ### Status Semantics
 
@@ -53,6 +92,30 @@ KOTHONG DEV CONTROL ใช้แนวทาง **Warm Operational Console** ต
 ห้ามใช้สีเพียงอย่างเดียว ต้องมี icon, label และข้อความประกอบเสมอ
 
 ## 3. Layout
+
+### Breakpoints
+
+| ชื่อ | ช่วงความกว้าง | viewport ที่ใช้ทดสอบ |
+|---|---|---|
+| `mobile` | `< 768px` | 375 × 812 |
+| `tablet` | `768px – 1119px` | 834 × 1112 |
+| `desktop` | `≥ 1120px` | 1440 × 900 |
+
+viewport ที่ระบุคือค่าที่ automated test ต้องใช้จริง ไม่ใช่ค่าตัวอย่าง
+
+### Critical actions ที่ต้องเข้าถึงได้ทุก breakpoint
+
+action ต่อไปนี้ห้ามหายไปหรือถูกซ่อนหลัง interaction ที่มองไม่เห็นในทุกขนาดหน้าจอ
+
+1. เข้าถึง Command Center และรายการที่ต้องตัดสินใจ
+2. `Add Project` และการยืนยันการลงทะเบียน
+3. `Refresh` metadata ของ project
+4. เปิด Project detail และเห็น access status กับ last verified timestamp
+5. Approve และ Reject ใน Approval Center
+6. เปิด Activity Log และคัดลอก correlation ID
+7. Sign out
+
+การย้าย action ไปอยู่ใน overflow menu ทำได้ แต่ต้องเข้าถึงได้ด้วย keyboard และมี accessible name
 
 ### Desktop
 
