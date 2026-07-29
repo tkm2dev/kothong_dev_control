@@ -72,7 +72,11 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 - ห้าม Deploy จาก feature branch
 - Pull Request ต้องอธิบาย scope, evidence, risks และ known limitations
 
-กฎข้างต้นเป็น **convention ที่ไม่มี technical enforcement** — branch protection ยังใช้กับ repository นี้ไม่ได้ ทุกคนที่มีสิทธิ์ write สามารถ push เข้า `main` ได้ในทางเทคนิค ความรับผิดชอบจึงอยู่ที่ผู้ปฏิบัติทั้งหมด ดู `docs/ROADMAP.md` หัวข้อ "ข้อจำกัดการบังคับใช้ ณ ปัจจุบัน"
+ตั้งแต่ 2026-07-29 กฎสามข้อแรกถูกบังคับที่ platform layer แล้วผ่าน branch protection บน `main` — ห้าม push ตรง ห้าม force-push และต้องผ่าน Pull Request โดยมีผลกับเจ้าของ repository ด้วย
+
+กฎที่เหลือยังอาศัยกระบวนการ โดยเฉพาะ **Merge ต้องมี Product Owner approval ที่ผูกกับ exact head SHA** ซึ่ง GitHub บังคับให้ผ่าน Pull Request ได้ แต่บังคับให้มี approval record ไม่ได้ และ **required status checks ยังตั้งไม่ได้** เพราะ CI ยังรัน job ไม่ได้
+
+ดู `docs/ROADMAP.md` หัวข้อ "สถานะการบังคับใช้ ณ ปัจจุบัน"
 
 ## 6. Standard Workflow
 

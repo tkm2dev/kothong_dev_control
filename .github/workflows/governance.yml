@@ -105,8 +105,14 @@ jobs:
       # workflow ที่ทำ merge หรือ deploy เองก็ขัดกฎเดียวกัน
       - name: No delivery automation in workflows
         run: |
+          # บรรทัดที่นิยาม pattern เองย่อมมีข้อความที่กำลังค้นหาอยู่ภายใน จึงต้องยกเว้น
+          # บรรทัดนั้นบรรทัดเดียวอย่างเจาะจง มิฉะนั้น check จะจับตัวเองทุกครั้ง
+          # ยกเว้นแบบเจาะจงไฟล์และรูปแบบบรรทัด ไม่ใช้ comment marker ที่ใครก็เติมเพื่อเลี่ยงได้
           FORBIDDEN='gh pr merge|gh release create|actions/create-release|peter-evans/create-pull-request|git push'
-          if grep -rnE "$FORBIDDEN" .github/workflows/ 2>/dev/null; then
+          HITS=$(grep -rnE "$FORBIDDEN" .github/workflows/ 2>/dev/null \
+            | grep -vE '^\.github/workflows/governance\.yml:[0-9]+: *FORBIDDEN=' || true)
+          if [ -n "$HITS" ]; then
+            echo "$HITS"
             echo "::error::workflow มีคำสั่งที่ทำ merge, release หรือเขียนกลับ repository ซึ่งขัดกับ ADR 0002"
             exit 1
           fi

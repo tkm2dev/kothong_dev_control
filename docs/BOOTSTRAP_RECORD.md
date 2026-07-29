@@ -45,11 +45,15 @@ Repository `tkm2dev/kothong_dev_control` มี metadata ระบุ default br
 | การตั้งค่าที่เสนอ | สถานะ |
 |---|---|
 | disable rebase merge | DONE 2026-07-29 |
-| protect `main` | ใช้ไม่ได้ — branch protection ไม่มีให้ใช้บน plan/visibility ปัจจุบัน |
-| require Pull Request | ใช้ไม่ได้ — เหตุผลเดียวกัน |
-| prohibit force-push | ใช้ไม่ได้ — เหตุผลเดียวกัน |
-| require status checks เมื่อ CI พร้อม | ใช้ไม่ได้ — ต้องมี branch protection ก่อน |
+| protect `main` | DONE 2026-07-29 |
+| require Pull Request | DONE 2026-07-29 |
+| prohibit force-push | DONE 2026-07-29 |
+| require status checks เมื่อ CI พร้อม | ยังทำไม่ได้ — รอ workflow run ที่สำเร็จ ดู issue #8 |
 
-`GET /branches/main/protection` และ `GET /rulesets` คืน HTTP 403 `"Upgrade to GitHub Pro or make this repository public to enable this feature"` (ตรวจเมื่อ 2026-07-29)
+การตั้งค่าเหล่านี้เคยใช้ไม่ได้ เพราะ branch protection ไม่มีให้ใช้บน private repository ภายใต้ plan เดิม `GET /branches/main/protection` คืน HTTP 403 `"Upgrade to GitHub Pro or make this repository public to enable this feature"`
 
-Product Owner ตัดสินใจเมื่อ 2026-07-29 ให้ยอมรับสถานะ convention-only กฎ no-direct-commit, no-force-push และ require-PR จึงมีผลผูกพันในเชิงกระบวนการแต่ **ไม่มี technical enforcement** รายละเอียดและ compensating controls อยู่ใน `docs/ROADMAP.md` หัวข้อ "ข้อจำกัดการบังคับใช้ ณ ปัจจุบัน"
+Product Owner เปลี่ยน repository เป็น public เมื่อ 2026-07-29 และเปิด branch protection บน `main` ในวันเดียวกัน
+
+**bootstrap exception ที่บันทึกในเอกสารนี้จึงเป็น commit เดียวที่เข้า `main` โดยตรงได้ตลอดกาล** ตั้งแต่ 2026-07-29 เป็นต้นไป platform บังคับไม่ให้เกิดขึ้นอีก ไม่ใช่เพียงกฎที่ผู้ปฏิบัติต้องจำ
+
+รายละเอียดการตั้งค่าและสิ่งที่ยังบังคับใช้ไม่ได้อยู่ใน `docs/ROADMAP.md` หัวข้อ "สถานะการบังคับใช้ ณ ปัจจุบัน"
