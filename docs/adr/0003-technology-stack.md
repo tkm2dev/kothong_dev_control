@@ -1,7 +1,8 @@
 # ADR 0003: Implementation Technology Stack
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-29
+- Accepted: 2026-07-29 via Pull Request #2 — approval record อยู่ในคอมเมนต์ของ Pull Request นั้น
 - Prerequisite for: Slice 1 implementation ตาม `AGENTS.md` §10 ข้อ 1
 
 ## Context
