@@ -4,7 +4,7 @@
 
 ## 1. Source of Truth
 
-- GitHub repository นี้เป็น source of truth ของโค้ด เอกสาร branch commit Pull Request review และสถานะ CI
+- GitHub repository นี้เป็น source of truth ของโค้ด เอกสาร branch commit Pull Request และ review — repository นี้ไม่มี CI ตาม GitHub Policy ของ Product Owner
 - ก่อนออกแบบงาน ออกคำสั่งพัฒนา ตรวจ PR หรือสรุปสถานะ ต้องอ่าน `main` ล่าสุดเสมอ
 - ต้องอ่านไฟล์นี้และ `docs/TEAM_DEVELOPMENT_MODEL.md` ก่อนเริ่มงานทุกครั้ง
 - เมื่อข้อมูลขัดกัน ให้เชื่อโค้ดและเอกสารบน `main` ล่าสุด
@@ -74,7 +74,9 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 
 ตั้งแต่ 2026-07-29 กฎสามข้อแรกถูกบังคับที่ platform layer แล้วผ่าน branch protection บน `main` — ห้าม push ตรง ห้าม force-push และต้องผ่าน Pull Request โดยมีผลกับเจ้าของ repository ด้วย
 
-ตั้งแต่ 2026-07-29 เช่นกัน **required status checks** บังคับให้ `Governance checks`, `Typecheck, lint, test` และ `End-to-end` ต้องผ่านก่อน merge และ branch ต้อง up-to-date กับ `main`
+ตั้งแต่ 2026-07-29 เช่นกัน GitHub Policy ของ Product Owner ห้ามมี GitHub Actions, CI และ CD ใน repository นี้ GitHub เป็น source control อย่างเดียว `.github/workflows/` จึงถูกลบ และ required status checks ถูกถอดออกจาก branch protection ตาม `docs/adr/0006-replace-implementation-stack.md`
+
+**แปลว่าไม่มีการตรวจอัตโนมัติใด ๆ ก่อน merge เลย** หลักฐานเดียวที่เหลือคือ output จริงที่ผู้ implement แนบมาใน Pull Request ทุก Pull Request จึงต้องแนบ output ของ `pnpm typecheck`, `pnpm lint` และ `pnpm test` มาทั้งบรรทัดสรุป คำว่า "ผ่านแล้ว" โดยไม่มี output ถือว่าไม่ผ่าน
 
 กฎที่เหลือยังอาศัยกระบวนการ โดยเฉพาะ **Merge ต้องมี Product Owner approval ที่ผูกกับ exact head SHA** ซึ่ง GitHub บังคับให้ผ่าน Pull Request และให้ check ผ่านได้ แต่บังคับให้มี approval record ไม่ได้
 
@@ -101,7 +103,7 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 - `P1`: ปัญหาสำคัญแต่ไม่ขวาง Mergeตาม governance ให้บันทึก backlog พร้อม owner
 - `P2`: งานปรับปรุงคุณภาพหรือ usability ให้บันทึก backlog
 
-ห้ามเรียก GitHub Actions ที่เป็น `startup_failure` ว่า CI ผ่าน ต้องรายงาน local test evidence และข้อจำกัดตามจริง
+repository นี้ไม่มี CI ห้ามอ้างว่า typecheck lint test หรือ E2E ผ่าน โดยไม่มี output จริงแนบมา และห้ามนับ suite ที่ไม่มี test ให้รันว่าผ่าน
 
 ## 8. Security and Audit
 

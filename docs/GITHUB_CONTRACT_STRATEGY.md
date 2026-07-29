@@ -42,10 +42,12 @@ test ชุดหนึ่งที่เรียก GitHub จริงด้�
 
 ## สิ่งที่ยังไม่ทำใน Slice 1
 
-- ไม่ทำ automated scheduled contract verification เพราะยังไม่มี CI
+- ไม่ทำ automated scheduled contract verification เพราะ repository นี้ไม่มี CI
 - ไม่ทำ consumer-driven contract testing แบบเต็มรูปแบบ เนื่องจากเราเป็นผู้บริโภคฝ่ายเดียวและไม่มีอิทธิพลต่อ provider
 
-เมื่อมี CI แล้ว ควรย้ายชั้นที่ 3 ไปรันตามกำหนดเวลาและแจ้งเตือนเมื่อ diff ปรากฏ — บันทึกเป็น backlog
+repository นี้จะไม่มี CI ตาม GitHub Policy ชั้นที่ 3 จึงต้องรันด้วยมือเสมอ กำหนดให้รันก่อนเปิด Pull Request ที่แตะ GitHub integration และแนบผลจริงมาด้วย
+
+ข้อนี้พึ่งความจำของคน ซึ่งเป็นกลไกที่อ่อนที่สุดในบรรดาที่มี — บันทึกเป็น backlog ให้หา trigger ที่ไม่ใช่ความจำ เช่นผูกกับขั้นตอน deploy บน VPS ที่ต้องรันอยู่แล้ว
 
 ## ข้อจำกัดที่ต้องระบุใน evidence
 
