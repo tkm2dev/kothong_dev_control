@@ -59,7 +59,7 @@ describe.skipIf(!DATABASE_URL)('tenant integrity', () => {
     ] as const) {
       await client.query(
         'INSERT INTO organizations (id, name, slug) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
-        [id, slug, `${slug}-${id.slice(0, 8)}`],
+        [id, slug, `${slug}-${id}`],
       );
     }
     for (const [id, org] of [
@@ -78,7 +78,7 @@ describe.skipIf(!DATABASE_URL)('tenant integrity', () => {
       await client.query(
         `INSERT INTO github_installations (id, organization_id, external_installation_id, account_login, status)
          VALUES ($1, $2, $3, $4, $5)`,
-        [id, org, `ext-${id.slice(0, 8)}`, 'acct', 'ACTIVE'],
+        [id, org, `ext-${id}`, 'acct', 'ACTIVE'],
       );
     }
   });
@@ -86,6 +86,17 @@ describe.skipIf(!DATABASE_URL)('tenant integrity', () => {
   afterAll(async () => {
     await client?.end();
   });
+
+  /** UUID v7 is time-ordered, so a prefix of one is not unique. Identifiers
+   * derived from an id must use the whole thing. */
+  const newProject = async (org: string): Promise<string> => {
+    const id = newId();
+    await client.query(
+      'INSERT INTO projects (id, organization_id, name, status) VALUES ($1, $2, $3, $4)',
+      [id, org, 'project', 'ACTIVE'],
+    );
+    return id;
+  };
 
   const insertRepository = (values: {
     org: string;
@@ -134,65 +145,40 @@ describe.skipIf(!DATABASE_URL)('tenant integrity', () => {
     ).resolves.toBeDefined();
   });
 
-  it('allows two organizations to register the same external repository', async () => {
+  it('allows two organizations to register the same external repository', () => {
     // Global uniqueness would fail here, letting one tenant block another and
     // revealing that the other tenant had registered it.
     const shared = `shared-${newId()}`;
-    await insertRepository({
-      org: orgA,
-      project: newId(),
-      installation: installA,
-      externalId: shared,
-    }).catch(async () => {
-      // projectA already holds a repository, so use a fresh project for this org.
-      const fresh = newId();
-      await client.query(
-        'INSERT INTO projects (id, organization_id, name, status) VALUES ($1, $2, $3, $4)',
-        [fresh, orgA, 'project', 'ACTIVE'],
-      );
+    return (async () => {
       await insertRepository({
         org: orgA,
-        project: fresh,
+        project: await newProject(orgA),
         installation: installA,
         externalId: shared,
       });
-    });
-
-    const freshB = newId();
-    await client.query(
-      'INSERT INTO projects (id, organization_id, name, status) VALUES ($1, $2, $3, $4)',
-      [freshB, orgB, 'project', 'ACTIVE'],
-    );
-    await expect(
-      insertRepository({
-        org: orgB,
-        project: freshB,
-        installation: installB,
-        externalId: shared,
-      }),
-    ).resolves.toBeDefined();
+      await expect(
+        insertRepository({
+          org: orgB,
+          project: await newProject(orgB),
+          installation: installB,
+          externalId: shared,
+        }),
+      ).resolves.toBeDefined();
+    })();
   });
 
   it('rejects the same external repository twice inside one organization', async () => {
     const duplicate = `dup-${newId()}`;
-    const first = newId();
-    const second = newId();
-    for (const id of [first, second]) {
-      await client.query(
-        'INSERT INTO projects (id, organization_id, name, status) VALUES ($1, $2, $3, $4)',
-        [id, orgA, 'project', 'ACTIVE'],
-      );
-    }
     await insertRepository({
       org: orgA,
-      project: first,
+      project: await newProject(orgA),
       installation: installA,
       externalId: duplicate,
     });
     await expect(
       insertRepository({
         org: orgA,
-        project: second,
+        project: await newProject(orgA),
         installation: installA,
         externalId: duplicate,
       }),
