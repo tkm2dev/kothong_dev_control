@@ -129,3 +129,11 @@ Implementation ของ Slice 1 เริ่มได้เมื่อคร�
 ห้ามเริ่มเขียน application code ของ Slice 1 ก่อนครบทั้ง 5 ข้อ แม้ Foundation Pack จะ merge แล้วก็ตาม
 
 ADR ที่ยังมีสถานะ `Proposed` ไม่นับว่าตัดสินแล้ว
+
+### ADR Status Lifecycle
+
+- `Proposed` — เสนอแล้วแต่ยังไม่ผ่านการอนุมัติ อ้างอิงเป็นข้อผูกพันไม่ได้
+- `Accepted` — merge เข้า `main` แล้วพร้อม Product Owner approval ที่ผูกกับ exact head SHA ต้องบันทึกวันที่ SHA ที่อนุมัติ และ merge commit ไว้ในหัวเอกสาร
+- `Superseded` — ถูกแทนที่ด้วย ADR ใหม่ ต้องอ้างเลข ADR ที่มาแทน และห้ามลบเนื้อหาเดิม
+
+การเปลี่ยนสถานะเป็น `Accepted` ต้องเกิดใน Pull Request ไม่ใช่แก้ตรงบน `main` และต้องอ้างหลักฐาน approval ที่ตรวจสอบย้อนกลับได้
