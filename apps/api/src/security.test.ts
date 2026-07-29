@@ -11,13 +11,22 @@ import 'reflect-metadata';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { createApp } from './app.ts';
+import { AuthController } from './auth/controller.ts';
+import { ProjectsController } from './projects/controller.ts';
 import { RATE_LIMIT_MAX_REQUESTS, SESSION_COOKIE, sessionCookieOptions } from './security.ts';
+
+// Collaborators are irrelevant here: these tests are about headers, CSRF and
+// rate limiting, which apply before any route body runs.
+const stubDependencies = {
+  auth: { resolve: async () => null } as unknown as AuthController,
+  projects: {} as ProjectsController,
+};
 
 describe('browser security controls', () => {
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
-    app = await createApp({ https: true, cookieSecret: 'test-secret-not-a-real-key-000000' });
+    app = await createApp({ https: true, cookieSecret: 'test-secret-not-a-real-key-000000' }, stubDependencies);
     await app.init();
     await app.getHttpAdapter().getInstance().ready();
   });
@@ -58,7 +67,7 @@ describe('browser security controls', () => {
     it('omits HSTS when not served over HTTPS', async () => {
       // Sending HSTS from a plain-HTTP deployment pins browsers to a scheme the
       // server may not answer on, which is a self-inflicted outage.
-      const plain = await createApp({ https: false, cookieSecret: 'test-secret-000000000000000' });
+      const plain = await createApp({ https: false, cookieSecret: 'test-secret-0000000000000000000' }, stubDependencies);
       await plain.init();
       await plain.getHttpAdapter().getInstance().ready();
       const res = await plain.inject({ method: 'GET', url: '/health' });
