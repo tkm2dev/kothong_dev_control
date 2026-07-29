@@ -1,0 +1,5 @@
+# CI Verification Scratch
+
+ไฟล์ชั่วคราวสำหรับยืนยันว่า workflow ทำงานตามที่ออกแบบ จะถูกลบก่อน merge
+
+สถานะ: baseline ที่ทุก check ควรผ่าน
