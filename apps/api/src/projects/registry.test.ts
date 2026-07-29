@@ -53,6 +53,7 @@ const input = (overrides: Partial<RegisterProjectInput> = {}): RegisterProjectIn
   repository,
   idempotencyKey: 'key-1',
   correlationId: 'corr-1',
+  requestFingerprint: JSON.stringify(['KOTHONG DEV CONTROL', 'install-1', 'tkm2dev', 'repo']),
   ...overrides,
 });
 
@@ -149,9 +150,16 @@ describe('idempotency', () => {
   it('refuses the same key with a different payload', async () => {
     const { registry } = build();
     await registry.register(input());
-    expect(await codeOf(registry.register(input({ name: 'A different name' })))).toBe(
-      'IDEMPOTENCY_KEY_REUSED',
-    );
+    expect(
+      await codeOf(
+        registry.register(
+          input({
+            name: 'A different name',
+            requestFingerprint: JSON.stringify(['A different name', 'install-1', 'tkm2dev', 'repo']),
+          }),
+        ),
+      ),
+    ).toBe('IDEMPOTENCY_KEY_REUSED');
   });
 });
 
@@ -187,8 +195,8 @@ describe('authorisation', () => {
   it('lists only what the actor may see', async () => {
     const { registry } = build();
     await registry.register(input());
-    expect(await registry.list(owner)).toHaveLength(1);
-    expect(await registry.list(outsider)).toHaveLength(0);
+    expect((await registry.list(owner, { limit: 25 })).items).toHaveLength(1);
+    expect((await registry.list(outsider, { limit: 25 })).items).toHaveLength(0);
   });
 
   it('ignores a role assignment belonging to another organization', async () => {

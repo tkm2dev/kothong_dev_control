@@ -69,7 +69,7 @@ export interface RegistryTransaction {
     externalRepositoryId: string,
   ): Promise<Project | null>;
   findProject(organizationId: string, projectId: string): Promise<Project | null>;
-  listProjects(organizationId: string): Promise<Project[]>;
+  listProjects(organizationId: string, page: { limit: number; cursor?: string | undefined }): Promise<Project[]>;
   insertProject(project: Project, installationId: string): Promise<void>;
   updateProject(project: Project, expectedVersion: number): Promise<boolean>;
   findIdempotency(key: IdempotencyKey): Promise<IdempotencyRecord | null>;
@@ -96,6 +96,17 @@ export interface RegisterProjectInput {
   readonly repository: VerifiedRepository;
   readonly idempotencyKey: string;
   readonly correlationId: string;
+  /**
+   * What the client asked for, verbatim.
+   *
+   * The digest is taken from this rather than from `repository`, because
+   * `repository` is GitHub's answer and is fetched again on every attempt. If
+   * anything about it differed between the first call and a retry — a rename
+   * upstream, a permission change — an honest retry would be rejected as a
+   * reused key. AC-10 is about the client sending a different payload, and the
+   * payload is what the client controls.
+   */
+  readonly requestFingerprint: string;
 }
 
 /**
@@ -106,15 +117,7 @@ export interface RegisterProjectInput {
  * to include in a hand-written comparison.
  */
 export function requestDigest(input: RegisterProjectInput): string {
-  return createHash('sha256')
-    .update(
-      JSON.stringify({
-        name: input.name,
-        installationId: input.installationId,
-        externalRepositoryId: input.repository.externalRepositoryId,
-      }),
-    )
-    .digest('hex');
+  return createHash('sha256').update(input.requestFingerprint).digest('hex');
 }
 
 /**
@@ -247,13 +250,32 @@ export class ProjectRegistry {
     });
   }
 
-  /** AC-03: only projects the actor is allowed to see. */
-  async list(actor: Actor): Promise<Project[]> {
+  /**
+   * AC-03: only projects the actor is allowed to see.
+   *
+   * Keyset pagination on the primary key. UUID v7 is time-ordered, so ordering
+   * by id is ordering by creation, and a cursor stays correct even while rows
+   * are being inserted. An offset would skip or repeat rows in exactly that
+   * situation, which is why the Pagination Contract forbids it.
+   *
+   * One extra row is fetched to learn whether another page exists, rather than
+   * running a second count query that could disagree with the first.
+   */
+  async list(
+    actor: Actor,
+    page: { limit: number; cursor?: string | undefined },
+  ): Promise<{ items: Project[]; nextCursor: string | null }> {
     return this.unitOfWork.run(async (tx) => {
-      const all = await tx.listProjects(actor.organizationId);
-      return all.filter((project) =>
+      const fetched = await tx.listProjects(actor.organizationId, {
+        limit: page.limit + 1,
+        cursor: page.cursor,
+      });
+      const visible = fetched.filter((project) =>
         isVisible(actor, { organizationId: project.organizationId, projectId: project.id }),
       );
+      const items = visible.slice(0, page.limit);
+      const nextCursor = visible.length > page.limit ? (items.at(-1)?.id ?? null) : null;
+      return { items, nextCursor };
     });
   }
 

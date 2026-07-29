@@ -11,7 +11,7 @@
  * safe under concurrency, and the unique constraint behind AC-08.
  */
 
-import { and, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   activityEvents,
@@ -125,7 +125,7 @@ function transactionOver(tx: Tx): RegistryTransaction {
       );
     },
 
-    async listProjects(organizationId) {
+    async listProjects(organizationId, page) {
       const rows = await tx
         .select({
           id: projects.id,
@@ -142,7 +142,13 @@ function transactionOver(tx: Tx): RegistryTransaction {
         })
         .from(projects)
         .innerJoin(githubRepositories, eq(githubRepositories.projectId, projects.id))
-        .where(eq(projects.organizationId, organizationId));
+        .where(
+          page.cursor === undefined
+            ? eq(projects.organizationId, organizationId)
+            : and(eq(projects.organizationId, organizationId), gt(projects.id, page.cursor)),
+        )
+        .orderBy(asc(projects.id))
+        .limit(page.limit);
       return rows.map((row) => toProject(row, row));
     },
 

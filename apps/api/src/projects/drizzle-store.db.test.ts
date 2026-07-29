@@ -63,6 +63,7 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
     repository: repository(`ext-${newId()}`),
     idempotencyKey: `key-${newId()}`,
     correlationId: `corr-${newId()}`,
+    requestFingerprint: JSON.stringify(['Project', installationId]),
     ...overrides,
   });
 
@@ -190,9 +191,15 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
   it('refuses a reused key carrying a different payload', async () => {
     const request = input();
     await registry.register(request);
-    expect(await codeOf(registry.register({ ...request, name: 'Different' }))).toBe(
-      'IDEMPOTENCY_KEY_REUSED',
-    );
+    expect(
+      await codeOf(
+        registry.register({
+          ...request,
+          name: 'Different',
+          requestFingerprint: JSON.stringify(['Different', installationId]),
+        }),
+      ),
+    ).toBe('IDEMPOTENCY_KEY_REUSED');
   });
 
   it('applies exactly one of two writes racing on the same version', async () => {
@@ -228,7 +235,7 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
 
   it('lists only the projects of the actor organization', async () => {
     const { project } = await registry.register(input());
-    const listed = await registry.list(actor);
+    const listed = (await registry.list(actor, { limit: 25 })).items;
     expect(listed.map((p) => p.id)).toContain(project.id);
     expect(listed.every((p) => p.organizationId === organizationId)).toBe(true);
   });
