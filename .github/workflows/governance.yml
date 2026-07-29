@@ -21,7 +21,7 @@ jobs:
       # ข้อยกเว้นเดียวคือ bootstrap commit ที่บันทึกไว้ใน docs/BOOTSTRAP_RECORD.md
       - name: No direct commits on main
         run: |
-          BOOTSTRAP=72e06466e9dc78ecc8d59816ab23a5c0d9746399
+          BOOTSTRAP=0000000000000000000000000000000000000000
           VIOLATIONS=$(git log origin/main --first-parent --no-merges --format='%H %s' \
             | grep -v "^${BOOTSTRAP} " || true)
           if [ -n "$VIOLATIONS" ]; then
