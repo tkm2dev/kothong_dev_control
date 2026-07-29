@@ -271,7 +271,14 @@ Slice 1 มี GitHub App installation และ server-side GitHub API access �
 
 ### AC-21 Correlation
 
-API response/error ที่เหมาะสมต้องมี correlation reference ที่เชื่อมกับ Activity/Audit ได้โดยไม่เปิด internal secret
+ทุก HTTP response ของ API ต้องมี header `X-Correlation-Id` ไม่ว่า outcome จะเป็นอะไร
+
+- ค่าใน header ต้องตรงกับ `correlation_id` ของ Activity Event และ Audit Record ที่ request นั้นสร้าง
+- request ที่ client ส่ง `X-Correlation-Id` มาเอง ให้ใช้ค่านั้นต่อได้หลัง validate รูปแบบแล้ว มิฉะนั้นให้สร้างใหม่
+- correlation reference ต้องไม่มี internal identifier ที่เปิดเผยโครงสร้างภายในหรือ secret
+- error response ที่แสดงต่อผู้ใช้ต้องแสดง correlation reference ที่ copy ได้ เพื่อให้อ้างอิงกับ Activity Log ได้
+
+ต้องมี test ที่เรียก API แล้ว assert ว่า header มีอยู่จริง และค่าตรงกับ record ที่ persist
 
 ### AC-22 Server-side Authorization Tests
 
