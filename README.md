@@ -58,4 +58,8 @@ Merge and deploy automation must still not be built. Every merge requires explic
 
 `main` is protected as of 2026-07-29: direct pushes and force pushes are rejected, a pull request is required, and the rules apply to the repository owner as well.
 
-**CI still does not run.** Workflow files are on `main` and start correctly, but every job is rejected because the account's billing is locked. Until that is resolved, no test result in this repository has been verified by a machine — each one is a claim made by whoever submitted the work. Tracked in issue #8.
+CI runs as of 2026-07-29. Three checks are required before any pull request can merge: `Governance checks`, `Typecheck, lint, test` and `End-to-end`. A pull request whose checks fail is blocked, and branches must be up to date with `main` before merging.
+
+The six governance checks were each proven to catch the error they exist for, rather than only observed passing. Evidence is in issue #8.
+
+**What CI does not yet cover:** there is no application code, so typecheck, lint, test and end-to-end jobs currently skip with an explicit notice. Those paths remain unproven until Slice 1 delivers code.

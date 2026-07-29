@@ -74,7 +74,9 @@ KOTHONG DEV CONTROL เป็น Human-in-the-loop control plane สำหรั
 
 ตั้งแต่ 2026-07-29 กฎสามข้อแรกถูกบังคับที่ platform layer แล้วผ่าน branch protection บน `main` — ห้าม push ตรง ห้าม force-push และต้องผ่าน Pull Request โดยมีผลกับเจ้าของ repository ด้วย
 
-กฎที่เหลือยังอาศัยกระบวนการ โดยเฉพาะ **Merge ต้องมี Product Owner approval ที่ผูกกับ exact head SHA** ซึ่ง GitHub บังคับให้ผ่าน Pull Request ได้ แต่บังคับให้มี approval record ไม่ได้ และ **required status checks ยังตั้งไม่ได้** เพราะ CI ยังรัน job ไม่ได้
+ตั้งแต่ 2026-07-29 เช่นกัน **required status checks** บังคับให้ `Governance checks`, `Typecheck, lint, test` และ `End-to-end` ต้องผ่านก่อน merge และ branch ต้อง up-to-date กับ `main`
+
+กฎที่เหลือยังอาศัยกระบวนการ โดยเฉพาะ **Merge ต้องมี Product Owner approval ที่ผูกกับ exact head SHA** ซึ่ง GitHub บังคับให้ผ่าน Pull Request และให้ check ผ่านได้ แต่บังคับให้มี approval record ไม่ได้
 
 ดู `docs/ROADMAP.md` หัวข้อ "สถานะการบังคับใช้ ณ ปัจจุบัน"
 

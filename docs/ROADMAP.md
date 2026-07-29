@@ -161,11 +161,11 @@ Candidate capabilities after operational evidence:
 | disable rebase merge in repository settings | DONE 2026-07-29 — `allow_rebase_merge: false` |
 | protect `main` from direct push and force-push | DONE 2026-07-29 — branch protection เปิดใช้งานแล้ว |
 | require PR before merge | DONE 2026-07-29 — บังคับผ่าน branch protection |
-| define protected status checks when CI exists | BLOCKED — รอ workflow run ที่สำเร็จ ดู issue #8 |
+| define protected status checks when CI exists | DONE 2026-07-29 — บังคับ 3 check พร้อม `strict: true` |
 | establish secret management approach | DONE 2026-07-29 — ADR 0005 `Accepted` |
 | select authentication provider | DONE 2026-07-29 — ADR 0004 `Accepted` |
 | select implementation technology stack | DONE 2026-07-29 — ADR 0003 `Accepted` |
-| ตั้ง CI ที่รัน test, lint และ scope check | **OPEN** — workflow อยู่บน `main` แล้วแต่ job ถูกปฏิเสธเพราะบัญชีถูกล็อกการเรียกเก็บเงิน evidence จึงยังเป็นคำรายงานของผู้ส่งงาน ดู issue #8 |
+| ตั้ง CI ที่รัน test, lint และ scope check | DONE 2026-07-29 — workflow ทำงานจริง check ทั้ง 6 พิสูจน์แล้ว ดู issue #8 |
 
 Repository setting changes require Product Owner approval and are not part of the current documentation write unless explicitly ordered
 
@@ -173,7 +173,7 @@ Repository setting changes require Product Owner approval and are not part of th
 
 **Product Owner decision (2026-07-29):** เปลี่ยน repository เป็น public เพื่อปลดล็อก branch protection ซึ่งไม่มีให้ใช้บน private repository ภายใต้ plan เดิม
 
-หัวข้อนี้เคยบันทึกว่ากฎทั้งหมดเป็น convention ที่ไม่มี technical enforcement บันทึกนั้นไม่เป็นจริงอีกต่อไปสำหรับ branch protection แต่ยังเป็นจริงสำหรับ CI
+หัวข้อนี้เคยบันทึกว่ากฎทั้งหมดเป็น convention ที่ไม่มี technical enforcement บันทึกนั้นไม่เป็นจริงอีกต่อไป — ทั้ง branch protection และ required status checks บังคับใช้แล้ว
 
 #### บังคับใช้ได้จริงแล้ว
 
@@ -191,23 +191,43 @@ branch protection บน `main` เปิดใช้งานเมื่อ 20
 
 รวมกับ repository setting เดิม `allow_rebase_merge: false` และ `allow_auto_merge: false`
 
-#### ยังบังคับใช้ไม่ได้
+#### Required status checks
 
-**required status checks** — ตั้งไม่ได้เพราะยังไม่มี workflow run ที่สำเร็จให้เลือกชื่อ check
+ตั้งใช้งานแล้วเมื่อ 2026-07-29 หลัง Product Owner อัปเดตข้อมูลการชำระเงินและปลดล็อก GitHub Actions
 
-สาเหตุคือบัญชีถูกล็อกการเรียกเก็บเงิน หน้า Actions แสดง `"Your account's billing is currently locked"` และ job ถูกปฏิเสธด้วยข้อความ `"The job was not started because your account is locked due to a billing issue"`
+| Check ที่บังคับ | มาจาก |
+|---|---|
+| `Governance checks` | `.github/workflows/governance.yml` |
+| `Typecheck, lint, test` | `.github/workflows/ci.yml` |
+| `End-to-end` | `.github/workflows/ci.yml` |
 
-การเปลี่ยนเป็น public แก้เรื่องโควตา minutes แล้ว — workflow ผ่านขั้นตอน startup และมีชื่อจริง ไม่ใช่ `startup_failure` อีกต่อไป แต่ billing lock เป็นสถานะระดับบัญชีที่ยังบล็อกการรัน job อยู่
+`strict: true` — branch ต้อง up-to-date กับ `main` ก่อน merge ซึ่งบังคับกฎ "ถ้า `main` ขยับ ให้ merge `origin/main` เข้า feature branch" ที่เดิมต้องอาศัยการจำ
 
-ติดตามใน issue #8
+พิสูจน์แล้วว่าบล็อกจริง ไม่ใช่เพียงอ่านค่าจาก API — ทำให้ check หนึ่งล้มเหลวบน Pull Request แล้วสถานะเปลี่ยนจาก `CLEAN` เป็น `BLOCKED` และกลับเป็น `CLEAN` เมื่อแก้
+
+#### CI ที่ยืนยันแล้ว
+
+check ทั้ง 6 ใน `governance.yml` ถูกพิสูจน์ทีละข้อว่าจับ error ได้จริง ไม่ใช่เพียงผ่านบน input ที่สะอาด หลักฐานอยู่ใน issue #8
+
+การพิสูจน์นี้พบบั๊กหนึ่งข้อ — check `No delivery automation in workflows` จับ pattern ของตัวเองจึงล้มเหลวทุกครั้ง แก้แล้วใน Pull Request #11
+
+**ส่วนที่ยังไม่ถูกพิสูจน์:** `ci.yml` ยืนยันได้เพียงพฤติกรรม skip เมื่อยังไม่มี `package.json` ส่วน typecheck, lint, test, E2E, PostgreSQL service และการ upload trace ยังไม่เคยรันจริง จะพิสูจน์ได้เมื่อ Slice 1 ส่งมอบ code
 
 #### สิ่งที่ยังต้องอาศัยกระบวนการ
 
-1. Merge ทุกครั้งต้องมี Product Owner approval ที่บันทึกบน Pull Request และผูกกับ exact head SHA — GitHub บังคับให้ผ่าน PR ได้ แต่บังคับให้มี approval record ไม่ได้
-2. ความถูกต้องของ evidence ที่ Implementation Owner รายงาน — จนกว่า CI จะรันได้
+1. Merge ทุกครั้งต้องมี Product Owner approval ที่บันทึกบน Pull Request และผูกกับ exact head SHA — GitHub บังคับให้ผ่าน Pull Request และให้ check ผ่านได้ แต่บังคับให้มี approval record ไม่ได้
+2. ความถูกต้องของ evidence ที่ Implementation Owner รายงานในส่วนที่ CI ยังไม่ครอบคลุม
 3. ตรวจ direct commit ย้อนหลังเป็นระยะด้วย `git log main --first-parent --no-merges` — ยังคงไว้เป็นการตรวจซ้ำแม้ platform จะบังคับแล้ว
 
-**Revisit trigger:** ทบทวนหัวข้อนี้เมื่อ billing กลับมาปกติ เมื่อเพิ่มผู้มีสิทธิ์ write หรือเมื่อเปลี่ยน visibility กลับเป็น private ซึ่งจะทำให้ branch protection หายไปอีกครั้ง
+#### ความเสี่ยงที่มาพร้อมกับการบังคับใช้
+
+`enforce_admins: true` ร่วมกับ required status checks หมายความว่า **หาก CI พัง จะ merge อะไรไม่ได้เลย รวมถึง Pull Request ที่จะมาแก้ CI นั้นเอง**
+
+ทางออกคือ Product Owner ปิด `enforce_admins` ชั่วคราวผ่าน Settings ซึ่งปรากฏใน audit log ของ repository เป็นทางออกที่ตั้งใจให้เห็นได้ ไม่ใช่ทางลับ
+
+นี่คือเหตุผลที่ check ทั้งหมดถูกพิสูจน์ก่อนตั้งเป็น required — หากตั้งขณะที่ยังมีบั๊ก self-match อยู่ ทุก Pull Request จะถูกบล็อกทันที รวมถึง Pull Request ที่จะมาแก้บั๊กนั้น
+
+**Revisit trigger:** ทบทวนหัวข้อนี้เมื่อเพิ่มผู้มีสิทธิ์ write เมื่อเปลี่ยน visibility กลับเป็น private ซึ่งจะทำให้ branch protection หายไป หรือเมื่อ billing ถูกล็อกอีกครั้งซึ่งจะทำให้ทุก Pull Request ถูกบล็อกเพราะ check รันไม่ได้
 
 ### P1 Product
 
