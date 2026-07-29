@@ -1,8 +1,0 @@
-name: Evil
-on:
-  workflow_dispatch:
-jobs:
-  x:
-    runs-on: ubuntu-latest
-    steps:
-      - run: git push origin main
