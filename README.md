@@ -38,6 +38,9 @@ Current Foundation branch: `agent/foundation-pack`
 - [`docs/SLICE_01_ACCEPTANCE_CRITERIA.md`](docs/SLICE_01_ACCEPTANCE_CRITERIA.md)
 - [`docs/adr/0001-modular-monolith.md`](docs/adr/0001-modular-monolith.md)
 - [`docs/adr/0002-human-approval-boundary.md`](docs/adr/0002-human-approval-boundary.md)
+- [`docs/adr/0003-technology-stack.md`](docs/adr/0003-technology-stack.md)
+- [`docs/adr/0004-authentication-provider.md`](docs/adr/0004-authentication-provider.md)
+- [`docs/adr/0005-secret-management.md`](docs/adr/0005-secret-management.md)
 
 ## UX Direction
 
