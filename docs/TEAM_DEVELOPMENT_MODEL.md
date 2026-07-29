@@ -107,7 +107,7 @@ GPT ทำ Final Review หนึ่งครั้งต่อ revision ที�
 - P0 ขวาง Merge
 - P1/P2 บันทึก backlog และไม่ขยาย Active Slice
 
-GitHub Actions ที่เป็น `startup_failure` ห้ามนับเป็น CI ผ่าน ต้องระบุ local evidence และข้อจำกัดตามจริง
+repository นี้ไม่มี CI ตาม GitHub Policy ของ Product Owner หลักฐานการทดสอบมาจาก output จริงที่แนบใน Pull Request เท่านั้น ห้ามอ้างว่าผ่านโดยไม่มี output
 
 ## 10. Approval and Delivery
 
