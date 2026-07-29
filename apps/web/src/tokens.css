@@ -1,0 +1,162 @@
+/*
+ * Warm Operational Console.
+ *
+ * Values mirror `docs/UX_FLOWS.md` §2 and are asserted against it by
+ * `design-tokens.test.ts`, which recomputes every contrast ratio. Changing a
+ * colour here without re-measuring turns CI red.
+ *
+ * Two families on purpose: surfaces to sit on, and text colours to read. The
+ * amber that works as a button background is unreadable as text on cream, so
+ * they cannot be the same token.
+ */
+
+:root {
+  --color-bg-canvas: #f5f0e6;
+  --color-bg-surface: #fffdf8;
+  --color-bg-sidebar: #292a20;
+  --color-bg-sidebar-hover: #3a392b;
+
+  --color-text-primary: #2e2b24;
+  --color-text-secondary: #736d62;
+  --color-text-on-dark: #f8f3e8;
+
+  --color-border: #ddd5c8;
+  --color-border-strong: #9e8863;
+  --color-focus: #2e2b24;
+
+  --color-accent: #d79a1e;
+  --color-accent-hover: #e0a62e;
+
+  --color-accent-text: #8f6614;
+  --color-success-text: #64725c;
+  --color-warning-text: #916520;
+  --color-danger-text: #a84e3f;
+  --color-info-text: #617076;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-card: 0 8px 24px rgb(46 43 36 / 8%);
+  --space-page: clamp(16px, 3vw, 40px);
+
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--color-bg-canvas);
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+
+/* Focus must be visible on every surface used, not only the light ones. */
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* No decorative motion. Anything that does animate respects the OS setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Every interactive control clears the 44px touch target AC-26 requires. */
+button,
+a.button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+button.primary,
+a.button.primary {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+button.primary:hover:not(:disabled),
+a.button.primary:hover {
+  /* Brighter, not darker: darkening drops contrast with the dark label below
+     the 4.5:1 the label needs. */
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+input,
+select {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-surface);
+  width: 100%;
+}
+
+.card {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Never colour alone: each status carries an icon and a word. */
+.status--ok { color: var(--color-success-text); }
+.status--attention { color: var(--color-warning-text); }
+.status--blocked { color: var(--color-danger-text); }
+.status--info { color: var(--color-info-text); }
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

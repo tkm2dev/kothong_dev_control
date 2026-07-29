@@ -1,0 +1,141 @@
+/*
+ * Layout at the three breakpoints declared in `docs/UX_FLOWS.md` §3.
+ *
+ *   mobile   < 768px
+ *   tablet   768–1119px
+ *   desktop  >= 1120px
+ *
+ * Every critical action stays reachable at all three. The navigation changes
+ * shape rather than losing entries, because an action that disappears on a
+ * narrow screen is an action the user cannot take.
+ */
+
+.shell {
+  display: grid;
+  min-height: 100vh;
+  grid-template-areas: "nav" "main";
+  grid-template-rows: auto 1fr;
+}
+
+.nav {
+  background: var(--color-bg-sidebar);
+  color: var(--color-text-on-dark);
+  display: flex;
+  gap: 4px;
+  padding: 8px var(--space-page);
+  align-items: center;
+  overflow-x: auto;
+}
+
+.nav__brand {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-right: auto;
+  white-space: nowrap;
+}
+
+.nav a {
+  color: var(--color-text-on-dark);
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.nav a:hover,
+.nav a[aria-current="page"] {
+  background: var(--color-bg-sidebar-hover);
+}
+
+.main {
+  grid-area: main;
+  padding: var(--space-page);
+  max-width: 1440px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+}
+
+.stack {
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Tables become stacked records rather than scrolling sideways. */
+.record {
+  display: grid;
+  gap: 4px;
+}
+
+.record__label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-secondary);
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1120px) {
+  .shell {
+    grid-template-areas: "nav main";
+    grid-template-columns: 264px 1fr;
+    grid-template-rows: 1fr;
+  }
+
+  .nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    padding: 20px 16px;
+    overflow-x: visible;
+  }
+
+  .nav__brand {
+    margin: 0 0 16px;
+    white-space: normal;
+  }
+
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* Nothing may push the document sideways at any width. */
+html,
+body {
+  overflow-x: hidden;
+}
