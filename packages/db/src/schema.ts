@@ -86,25 +86,6 @@ export const organizationMembers = pgTable(
   (t) => [unique('organization_members_key').on(t.organizationId, t.userId)],
 );
 
-/**
- * Roles live here and nowhere else. ADR 0004 forbids deriving authorisation
- * from GitHub organization membership or repository permission: holding write
- * access on GitHub is not the same thing as being allowed to approve a merge.
- */
-export const roleAssignments = pgTable('role_assignments', {
-  id: uuid('id').primaryKey(),
-  organizationId: uuid('organization_id')
-    .notNull()
-    .references(() => organizations.id),
-  projectId: uuid('project_id'),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id),
-  roleCode: text('role_code').notNull(),
-  grantedByUserId: uuid('granted_by_user_id').references(() => users.id),
-  createdAt,
-  updatedAt,
-});
 
 /**
  * Server-side sessions, not JWTs. AC-38 requires logout to make a session
@@ -148,6 +129,73 @@ export const projects = pgTable(
   (t) => [unique('projects_id_organization_key').on(t.id, t.organizationId)],
 );
 
+/**
+ * Envelope-encrypted secrets, per ADR 0005. Only ciphertext and the wrapped
+ * data key live here; the key encryption key never leaves the KMS.
+ *
+ * Kept in its own table so ordinary queries never touch it, and so a leaked
+ * dump of business data does not carry credentials with it.
+ */
+/**
+ * Roles live here and nowhere else. ADR 0004 forbids deriving authorisation
+ * from GitHub organization membership or repository permission: holding write
+ * access on GitHub is not the same thing as being allowed to approve a merge.
+ */
+export const roleAssignments = pgTable(
+  'role_assignments',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    projectId: uuid('project_id'),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id),
+    roleCode: text('role_code').notNull(),
+    grantedByUserId: uuid('granted_by_user_id').references(() => users.id),
+    createdAt,
+    updatedAt,
+  },
+  // This table is the only place authorisation is read from. A row scoped to
+  // one organization but pointing at another's project would grant approval
+  // rights across a tenant boundary. NULL project_id stays legal for
+  // organization-wide roles.
+  (t) => [
+    foreignKey({
+      name: 'role_assignments_project_tenant_fk',
+      columns: [t.projectId, t.organizationId],
+      foreignColumns: [projects.id, projects.organizationId],
+    }),
+  ],
+);
+
+export const secrets = pgTable(
+  'secrets',
+  {
+    id: uuid('id').primaryKey(),
+    organizationId: uuid('organization_id')
+      .notNull()
+      .references(() => organizations.id),
+    purpose: text('purpose').notNull(),
+    algorithm: text('algorithm').notNull(),
+    ciphertext: text('ciphertext').notNull(),
+    wrappedDataKey: text('wrapped_data_key').notNull(),
+    nonce: text('nonce').notNull(),
+    authTag: text('auth_tag').notNull(),
+    keyVersion: text('key_version').notNull(),
+    rotatedAt: timestamp('rotated_at', { withTimezone: true }),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    index('secrets_org_purpose_idx').on(t.organizationId, t.purpose),
+    // Referenced by github_installations together with the tenant, so an
+    // installation cannot point at another organization's key material.
+    unique('secrets_id_organization_key').on(t.id, t.organizationId),
+  ],
+);
+
 export const githubInstallations = pgTable(
   'github_installations',
   {
@@ -163,7 +211,17 @@ export const githubInstallations = pgTable(
     createdAt,
     updatedAt,
   },
-  (t) => [unique('github_installations_id_organization_key').on(t.id, t.organizationId)],
+  (t) => [
+    unique('github_installations_id_organization_key').on(t.id, t.organizationId),
+    // Nullable: an installation may exist before its key is stored. Postgres
+    // skips a composite foreign key when any column is NULL, so that case
+    // stays legal while a populated reference is still tenant-checked.
+    foreignKey({
+      name: 'github_installations_secret_tenant_fk',
+      columns: [t.secretReference, t.organizationId],
+      foreignColumns: [secrets.id, secrets.organizationId],
+    }),
+  ],
 );
 
 /**
@@ -237,6 +295,14 @@ export const activityEvents = pgTable(
   (t) => [
     index('activity_events_org_created_idx').on(t.organizationId, t.createdAt),
     index('activity_events_correlation_idx').on(t.correlationId),
+    // An event filed against another tenant's project would make a timeline
+    // query return evidence from outside the caller's organization. Evidence
+    // that can be wrong about whose project it describes is not evidence.
+    foreignKey({
+      name: 'activity_events_project_tenant_fk',
+      columns: [t.projectId, t.organizationId],
+      foreignColumns: [projects.id, projects.organizationId],
+    }),
   ],
 );
 
@@ -267,7 +333,14 @@ export const auditRecords = pgTable(
     correlationId: text('correlation_id').notNull(),
     createdAt,
   },
-  (t) => [index('audit_records_org_created_idx').on(t.organizationId, t.createdAt)],
+  (t) => [
+    index('audit_records_org_created_idx').on(t.organizationId, t.createdAt),
+    foreignKey({
+      name: 'audit_records_project_tenant_fk',
+      columns: [t.projectId, t.organizationId],
+      foreignColumns: [projects.id, projects.organizationId],
+    }),
+  ],
 );
 
 // ---------------------------------------------------------------------------
@@ -300,33 +373,6 @@ export const idempotencyKeys = pgTable(
   ],
 );
 
-/**
- * Envelope-encrypted secrets, per ADR 0005. Only ciphertext and the wrapped
- * data key live here; the key encryption key never leaves the KMS.
- *
- * Kept in its own table so ordinary queries never touch it, and so a leaked
- * dump of business data does not carry credentials with it.
- */
-export const secrets = pgTable(
-  'secrets',
-  {
-    id: uuid('id').primaryKey(),
-    organizationId: uuid('organization_id')
-      .notNull()
-      .references(() => organizations.id),
-    purpose: text('purpose').notNull(),
-    algorithm: text('algorithm').notNull(),
-    ciphertext: text('ciphertext').notNull(),
-    wrappedDataKey: text('wrapped_data_key').notNull(),
-    nonce: text('nonce').notNull(),
-    authTag: text('auth_tag').notNull(),
-    keyVersion: text('key_version').notNull(),
-    rotatedAt: timestamp('rotated_at', { withTimezone: true }),
-    createdAt,
-    updatedAt,
-  },
-  (t) => [index('secrets_org_purpose_idx').on(t.organizationId, t.purpose)],
-);
 
 export const APPEND_ONLY_TABLES = ['activity_events', 'audit_records'] as const;
 

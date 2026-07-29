@@ -184,4 +184,100 @@ describe.skipIf(!DATABASE_URL)('tenant integrity', () => {
       }),
     ).rejects.toThrow(/duplicate key|unique/i);
   });
+  // -- constraints added after the security review found the first pass
+  //    covered only github_repositories -------------------------------------
+
+  const newUser = async (): Promise<string> => {
+    const id = newId();
+    await client.query(
+      'INSERT INTO users (id, display_name, status) VALUES ($1, $2, $3)',
+      [id, 'user', 'ACTIVE'],
+    );
+    return id;
+  };
+
+  const newSecret = async (org: string): Promise<string> => {
+    const id = newId();
+    await client.query(
+      `INSERT INTO secrets (id, organization_id, purpose, algorithm, ciphertext,
+                            wrapped_data_key, nonce, auth_tag, key_version)
+       VALUES ($1, $2, 'GITHUB_APP_PRIVATE_KEY', 'AES-256-GCM', 'c', 'w', 'n', 't', 'v1')`,
+      [id, org],
+    );
+    return id;
+  };
+
+  const insertRoleAssignment = (org: string, project: string | null, user: string) =>
+    client.query(
+      `INSERT INTO role_assignments (id, organization_id, project_id, user_id, role_code)
+       VALUES ($1, $2, $3, $4, 'PRODUCT_OWNER')`,
+      [newId(), org, project, user],
+    );
+
+  it('rejects a role assignment scoped to another organization project', async () => {
+    // role_assignments is the only source of authorisation. A row scoped to one
+    // organization but pointing at another's project would grant merge and
+    // deploy approval rights across the tenant boundary.
+    await expect(insertRoleAssignment(orgA, projectB, await newUser())).rejects.toThrow(
+      /foreign key|violates/i,
+    );
+  });
+
+  it('accepts an organization-wide role assignment with no project', async () => {
+    await expect(insertRoleAssignment(orgA, null, await newUser())).resolves.toBeDefined();
+  });
+
+  it('accepts a role assignment scoped to a project in the same organization', async () => {
+    await expect(insertRoleAssignment(orgA, projectA, await newUser())).resolves.toBeDefined();
+  });
+
+  it('rejects an installation referencing another organization secret', async () => {
+    // This is the GitHub App private key. A reference that crosses tenants
+    // would let one organization decrypt another's key material.
+    const secretB = await newSecret(orgB);
+    await expect(
+      client.query(
+        `INSERT INTO github_installations
+           (id, organization_id, external_installation_id, account_login, status, secret_reference)
+         VALUES ($1, $2, $3, 'acct', 'ACTIVE', $4)`,
+        [newId(), orgA, `ext-${newId()}`, secretB],
+      ),
+    ).rejects.toThrow(/foreign key|violates/i);
+  });
+
+  it('accepts an installation referencing a secret in its own organization', async () => {
+    const secretA = await newSecret(orgA);
+    await expect(
+      client.query(
+        `INSERT INTO github_installations
+           (id, organization_id, external_installation_id, account_login, status, secret_reference)
+         VALUES ($1, $2, $3, 'acct', 'ACTIVE', $4)`,
+        [newId(), orgA, `ext-${newId()}`, secretA],
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it('rejects an audit record filed against another organization project', async () => {
+    await expect(
+      client.query(
+        `INSERT INTO audit_records
+           (id, organization_id, project_id, actor_type, actor_reference, action_code,
+            target_type, outcome, correlation_id)
+         VALUES ($1, $2, $3, 'HUMAN', 'u', 'PROJECT_CREATE', 'PROJECT', 'SUCCESS', 'c')`,
+        [newId(), orgA, projectB],
+      ),
+    ).rejects.toThrow(/foreign key|violates/i);
+  });
+
+  it('rejects an activity event filed against another organization project', async () => {
+    await expect(
+      client.query(
+        `INSERT INTO activity_events
+           (id, organization_id, project_id, actor_type, actor_reference, action_code,
+            target_type, outcome, summary, correlation_id)
+         VALUES ($1, $2, $3, 'HUMAN', 'u', 'PROJECT_CREATE', 'PROJECT', 'SUCCESS', 's', 'c')`,
+        [newId(), orgA, projectB],
+      ),
+    ).rejects.toThrow(/foreign key|violates/i);
+  });
 });
