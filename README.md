@@ -56,4 +56,6 @@ Slice 1 work is bounded by the scope declared in issue #4. Work outside that sco
 
 Merge and deploy automation must still not be built. Every merge requires explicit Product Owner approval bound to an exact head SHA.
 
-**There is no CI in this repository.** No workflow runs on any pull request, so every test result is a claim made by whoever submitted the work rather than something the repository verified.
+`main` is protected as of 2026-07-29: direct pushes and force pushes are rejected, a pull request is required, and the rules apply to the repository owner as well.
+
+**CI still does not run.** Workflow files are on `main` and start correctly, but every job is rejected because the account's billing is locked. Until that is resolved, no test result in this repository has been verified by a machine — each one is a claim made by whoever submitted the work. Tracked in issue #8.
