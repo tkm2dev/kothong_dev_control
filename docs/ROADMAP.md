@@ -56,7 +56,11 @@ Status: `ACTIVE` ตั้งแต่ 2026-07-29
 | Implementation Owner | Claude Code |
 | Active Lane | issue #4 — สถานะ `RESERVED` จนกว่าจะแก้ไฟล์แรก |
 | Branch | `claude/slice-01-project-registry` |
-| Base commit | `6682bc2c58c41d072cbdc6413a22f6551b6dc5b0` |
+| Base commit | บันทึกใน issue #4 ไม่ทำสำเนาไว้ที่นี่ |
+
+base commit เปลี่ยนทุกครั้งที่ `main` ขยับก่อน lane จะเริ่ม การเก็บค่าไว้สองที่ทำให้ที่หนึ่งล้าสมัยเสมอ ซึ่งเกิดขึ้นแล้วสองครั้ง
+
+ค่าที่ผูกพันจริงคือ `main` head ณ เวลาที่ Implementation Owner สร้าง branch และต้องบันทึกลง issue #4 ตอนเปลี่ยนสถานะเป็น `ACTIVE`
 
 Acceptance criteria อยู่ใน `docs/SLICE_01_ACCEPTANCE_CRITERIA.md` — AC-01 ถึง AC-41 ทุกข้อเขียน test ได้
 
