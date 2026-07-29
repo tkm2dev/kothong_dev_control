@@ -1,0 +1,113 @@
+name: Governance
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    name: Governance checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # branch protection ใช้ไม่ได้บน plan ปัจจุบัน check นี้จึงเป็นการตรวจย้อนหลัง
+      # ว่ามี commit ที่เข้า main โดยไม่ผ่าน merge commit หรือไม่
+      # ข้อยกเว้นเดียวคือ bootstrap commit ที่บันทึกไว้ใน docs/BOOTSTRAP_RECORD.md
+      - name: No direct commits on main
+        run: |
+          BOOTSTRAP=72e06466e9dc78ecc8d59816ab23a5c0d9746399
+          VIOLATIONS=$(git log origin/main --first-parent --no-merges --format='%H %s' \
+            | grep -v "^${BOOTSTRAP} " || true)
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::พบ commit ที่เข้า main โดยตรง ซึ่งขัดกับ AGENTS.md section 5"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "ผ่าน — main มีเฉพาะ merge commit และ bootstrap commit ที่บันทึกไว้"
+
+      # AGENTS.md section 5 บังคับให้ PR อธิบาย scope, evidence, risks และ known limitations
+      - name: Pull request body completeness
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          MISSING=""
+          for SECTION in Summary Scope Validation Gate; do
+            echo "$PR_BODY" | grep -qi "^#\+.*${SECTION}" || MISSING="${MISSING} ${SECTION}"
+          done
+          if [ -n "$MISSING" ]; then
+            echo "::error::PR body ขาดหัวข้อ:${MISSING}"
+            exit 1
+          fi
+          echo "ผ่าน — PR body มีหัวข้อครบ"
+
+      # AC-19 และ AC-34 ห้าม credential ปรากฏใน repository
+      - name: Secret scan on changed files
+        run: |
+          BASE=${{ github.event.pull_request.base.sha }}
+          HEAD=${{ github.event.pull_request.head.sha }}
+          PATTERN='ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|xox[baprs]-[A-Za-z0-9-]{10,}|AKIA[0-9A-Z]{16}'
+          if git diff "$BASE" "$HEAD" -- . | grep -nE "^\+" | grep -qE "$PATTERN"; then
+            echo "::error::พบรูปแบบ credential ในไฟล์ที่เปลี่ยน"
+            exit 1
+          fi
+          echo "ผ่าน — ไม่พบรูปแบบ credential"
+
+      # AGENTS.md section 10 — ADR ที่เป็น Accepted ต้องบันทึกวันที่และหมายเลข Pull Request
+      - name: ADR status lifecycle
+        run: |
+          FAILED=0
+          for FILE in docs/adr/*.md; do
+            [ -e "$FILE" ] || continue
+            STATUS=$(grep -m1 '^- Status:' "$FILE" | sed 's/^- Status: *//')
+            case "$STATUS" in
+              Accepted)
+                if ! grep -q '^- Accepted:.*Pull Request #' "$FILE"; then
+                  echo "::error file=${FILE}::ADR เป็น Accepted แต่ไม่ได้บันทึกหมายเลข Pull Request"
+                  FAILED=1
+                fi
+                ;;
+              Proposed|Superseded) ;;
+              *)
+                echo "::error file=${FILE}::Status ไม่ถูกต้อง: '${STATUS}'"
+                FAILED=1
+                ;;
+            esac
+          done
+          exit $FAILED
+
+      # ลิงก์สัมพัทธ์ที่ชี้ไปไฟล์ที่ไม่มีอยู่ ทำให้เอกสารที่เป็น source of truth อ้างอิงไม่ได้
+      - name: Relative links resolve
+        run: |
+          FAILED=0
+          while IFS= read -r FILE; do
+            DIR=$(dirname "$FILE")
+            grep -oE '\]\([^)#][^)]*\)' "$FILE" 2>/dev/null \
+              | sed 's/^](//; s/)$//' \
+              | grep -vE '^(https?|mailto):' \
+              | while IFS= read -r LINK; do
+                  TARGET="${LINK%%#*}"
+                  [ -z "$TARGET" ] && continue
+                  if [ ! -e "${DIR}/${TARGET}" ] && [ ! -e "$TARGET" ]; then
+                    echo "::error file=${FILE}::ลิงก์เสีย: ${TARGET}"
+                    exit 1
+                  fi
+                done || FAILED=1
+          done < <(find . -name '*.md' -not -path './.git/*')
+          exit $FAILED
+
+      # AC-35 — Slice 1 ห้ามมี feature สำหรับ merge, deploy หรือ write ไปยัง repository
+      # workflow ที่ทำ merge หรือ deploy เองก็ขัดกฎเดียวกัน
+      - name: No delivery automation in workflows
+        run: |
+          FORBIDDEN='gh pr merge|gh release create|actions/create-release|peter-evans/create-pull-request|git push'
+          if grep -rnE "$FORBIDDEN" .github/workflows/ 2>/dev/null; then
+            echo "::error::workflow มีคำสั่งที่ทำ merge, release หรือเขียนกลับ repository ซึ่งขัดกับ ADR 0002"
+            exit 1
+          fi
+          echo "ผ่าน — ไม่มี delivery automation ใน workflow"
