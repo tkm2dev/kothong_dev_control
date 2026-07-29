@@ -35,10 +35,15 @@ describe('database availability', () => {
 
 describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
   let client: pg.Client;
+  // A pool, not a single client. Two transactions on one connection cannot
+  // overlap — their BEGIN and COMMIT interleave on the same wire — so a
+  // concurrency test against one client would prove nothing.
+  let pool: pg.Pool;
   let registry: ProjectRegistry;
   let uow: DrizzleUnitOfWork;
 
   const organizationId = newId();
+  const otherOrganizationId = newId();
   const installationId = newId();
   let actor: Actor;
 
@@ -87,11 +92,13 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
     }
 
     const userId = newId();
-    await client.query('INSERT INTO organizations (id, name, slug) VALUES ($1, $2, $3)', [
-      organizationId,
-      'org',
-      `org-${organizationId}`,
-    ]);
+    for (const id of [organizationId, otherOrganizationId]) {
+      await client.query('INSERT INTO organizations (id, name, slug) VALUES ($1, $2, $3)', [
+        id,
+        'org',
+        `org-${id}`,
+      ]);
+    }
     await client.query('INSERT INTO users (id, display_name, status) VALUES ($1, $2, $3)', [
       userId,
       'owner',
@@ -109,11 +116,13 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
       roles: [{ organizationId, projectId: null, roleCode: 'PRODUCT_OWNER' }],
     };
 
-    uow = new DrizzleUnitOfWork(drizzle(client));
+    pool = new pg.Pool({ connectionString: DATABASE_URL, max: 5 });
+    uow = new DrizzleUnitOfWork(drizzle(pool));
     registry = new ProjectRegistry(uow, newId, () => new Date());
   });
 
   afterAll(async () => {
+    await pool?.end();
     await client?.end();
   });
 
@@ -148,7 +157,10 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
   it('keeps the refusal even though the attempt rolled back', async () => {
     // The pairing that matters: the change is gone, the record of refusing it
     // is not.
-    const outsider: Actor = { userId: newId(), organizationId: newId(), roles: [] };
+    // A real organization with no roles in it. An actor from an organization
+    // that does not exist would fail the foreign key on the denial record
+    // itself, which is a fixture problem rather than the behaviour under test.
+    const outsider: Actor = { userId: newId(), organizationId: otherOrganizationId, roles: [] };
     const correlationId = `corr-${newId()}`;
     await codeOf(registry.register(input({ actor: outsider, correlationId })));
 
@@ -208,7 +220,7 @@ describe.skipIf(!DATABASE_URL)('registry on PostgreSQL', () => {
 
   it('tells an actor from another organization only that there is nothing there', async () => {
     const { project } = await registry.register(input());
-    const outsider: Actor = { userId: newId(), organizationId: newId(), roles: [] };
+    const outsider: Actor = { userId: newId(), organizationId: otherOrganizationId, roles: [] };
 
     expect(await codeOf(registry.get(outsider, project.id))).toBe('NOT_FOUND');
     expect(await codeOf(registry.get(outsider, newId()))).toBe('NOT_FOUND');
